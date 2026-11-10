@@ -207,3 +207,7 @@ main details > ul > li:last-child { border-bottom: 0; }
 @media (prefers-reduced-motion: reduce) {
   main details > summary::before, .to-top { transition: none; }
 }
+
+/* Photo galleries inside collapsible blocks (downloads: per-circuit photos) */
+main details > .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; padding: 12px; }
+main details > .photos img { display: block; width: 100%; height: auto; border-radius: var(--radius-element); }
