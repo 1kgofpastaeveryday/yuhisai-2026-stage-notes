@@ -36,7 +36,7 @@
 
 | ファイル | 中身 |
 |---|---|
-| [2026-11-06-rear-center-initial.mdat](files/audio/rew/2026-11-06-rear-center-initial.mdat) | 11月6日、客席最後方の中央。途中から返しスピーカーの音も混ざっている |
+| [2026-11-06-rear-center-initial.mdat](files/audio/rew/2026-11-06-rear-center-initial.mdat) | 11月6日、客席最後方の中央。返しスピーカーも鳴らした状態で測っている |
 | [2026-11-07-center-f1.mdat](files/audio/rew/2026-11-07-center-f1.mdat) | 11月7日朝、客席中央の1席。左だけ、右だけ、左右両方を、それぞれ3回ずつ |
 | [2026-11-07-center-eq-trials.mdat](files/audio/rew/2026-11-07-center-eq-trials.mdat) | 11月7日夜、同じ席で EQ を変えながら測った8回分。1〜2回目は55Hz を持ち上げた状態、3〜4回目は持ち上げない状態、5〜6回目は43Hz と61Hz を下げた状態、7〜8回目はさらにサブウーファーの音量を10時から12時の位置に上げた状態 |
 
