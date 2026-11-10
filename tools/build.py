@@ -61,12 +61,15 @@ def qlc_workspace(rows):
 
 
 def patch_table(rows):
-    kind = {'dimmer': 'ディマー', 'rgb': 'カラー LED'}
-    lines = ['| アドレス | 灯体 | 種類 | ch | 状態 | メモ |', '|---:|---|---|---:|---|---|']
+    """One table per group, in the CSV's row order (ordered for reading, not by address)."""
+    lines, group = [], None
     for r in rows:
+        if r['group'] != group:
+            group = r['group']
+            lines += ['', f'#### {group}', '', '| アドレス | 灯体 | 状態 | メモ |', '|---:|---|---|---|']
         a, n = int(r['address']), int(r['channels'])
         addr = f'{a}〜{a + n - 1}' if n > 1 else str(a)
-        lines.append(f'| {addr} | {r["name"]} | {kind[r["type"]]} | {n} | {r["status"]} | {r["note"]} |')
+        lines.append(f'| {addr} | {r["name"]} | {r["status"]} | {r["note"]} |')
     return '\n'.join(lines)
 VENDOR_CSS = ROOT / 'tools/vendor/astryx/theme-neutral.css'
 
