@@ -227,3 +227,4 @@ main details > .photos img { display: block; width: 100%; height: auto; border-r
   background: var(--color-background-surface); color: var(--color-text-primary);
   font-weight: 600; box-shadow: var(--shadow-low);
 }
+main details > .photo-note { margin: 0; padding: 12px 16px; font-size: 0.9375rem; }

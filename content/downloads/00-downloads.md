@@ -12,7 +12,7 @@
 
 「状態」は次の意味です。「本番で使用」は今回の本番で点けたもの、「点かない」は今回点かなかったもの、「年々暗くなっている」は点くが年ごとに明るさが落ちているもの、「未使用（状態未確認）」は今回使わず、点くかどうかを確かめていないものです。点かない灯体も、アドレスが分かるように表に残しています。電球の交換などで直ったら、そのまま使えます。
 
-ボーダー01は、舞台の上方に電球が複数並んだ灯体です。切れた電球が年々増えているので、使う年ごとに明るさが違う可能性があります。本番の途中で暗くなるという意味ではありません。前に作ったシーンの明るさをそのまま使わず、仕込みのときに見て合わせてください。
+ボーダー01は、舞台の上方に電球が複数並んだ灯体です。舞台全体を、ごく薄く照らします。切れた電球が年々増えているので、使う年ごとに明るさが違う可能性があります。本番の途中で暗くなるという意味ではありません。前に作ったシーンの明るさをそのまま使わず、仕込みのときに見て合わせてください。
 
 サスライトは5台です。アドレスは4・9・8・5・6番で、左から1/5〜5/5の順です。真ん中の3/5（8番）と4/5（5番）は点きません。
 
@@ -52,6 +52,7 @@
 
 <div class="sort-toggle" role="group" aria-label="写真の並び"><button type="button" data-sort="fixture" aria-pressed="true">灯体順</button><button type="button" data-sort="addr" aria-pressed="false">DMX アドレス順</button></div>
 <div class="photo-list">
+<details data-addr="1"><summary>1番　ボーダー01（写真なし）</summary><p class="photo-note">写真はありません。舞台全体を、ごく薄く照らします。</p></details>
 <details data-addr="4"><summary>4番　サスライト 1/5（左端）（2枚）</summary><div class="photos"><a href="files/venue/photos/IMG_0095.jpg"><img src="files/venue/photos/IMG_0095.jpg" alt="4番　サスライト 1/5（左端）" loading="lazy"></a><a href="files/venue/photos/IMG_0102.jpg"><img src="files/venue/photos/IMG_0102.jpg" alt="4番　サスライト 1/5（左端）" loading="lazy"></a></div></details>
 <details data-addr="9"><summary>9番　サスライト 2/5（左寄り）（1枚）</summary><div class="photos"><a href="files/venue/photos/IMG_0106.jpg"><img src="files/venue/photos/IMG_0106.jpg" alt="9番　サスライト 2/5（左寄り）" loading="lazy"></a></div></details>
 <details data-addr="8"><summary>8番　サスライト 3/5（中央） ※点かない（1枚）</summary><div class="photos"><a href="files/venue/photos/IMG_0097.jpg"><img src="files/venue/photos/IMG_0097.jpg" alt="8番　サスライト 3/5（中央） ※点かない" loading="lazy"></a></div></details>
