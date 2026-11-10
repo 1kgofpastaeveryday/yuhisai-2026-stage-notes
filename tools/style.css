@@ -211,3 +211,19 @@ main details > ul > li:last-child { border-bottom: 0; }
 /* Photo galleries inside collapsible blocks (downloads: per-circuit photos) */
 main details > .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; padding: 12px; }
 main details > .photos img { display: block; width: 100%; height: auto; border-radius: var(--radius-element); }
+
+/* Order toggle for the per-circuit photo list (same look as the page tabs) */
+.sort-toggle {
+  display: inline-flex; gap: 2px; padding: 3px; margin: 4px 0 12px;
+  background: var(--color-background-muted); border-radius: var(--radius-element);
+}
+.sort-toggle button {
+  font: inherit; font-size: 0.8125rem; line-height: 1.6; padding: 4px 12px;
+  border: 0; border-radius: var(--radius-inner); background: none; cursor: pointer;
+  color: var(--color-text-secondary);
+}
+.sort-toggle button:hover { color: var(--color-text-primary); }
+.sort-toggle button[aria-pressed="true"] {
+  background: var(--color-background-surface); color: var(--color-text-primary);
+  font-weight: 600; box-shadow: var(--shadow-low);
+}

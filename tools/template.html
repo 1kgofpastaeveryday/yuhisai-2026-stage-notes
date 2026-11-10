@@ -63,5 +63,21 @@
   update();
 })();
 </script>
+<script>
+// Toggle the order of the per-circuit photo blocks (fixture order as authored, or DMX address).
+document.querySelectorAll('.sort-toggle').forEach(group => {
+  const list = group.nextElementSibling;
+  const original = [...list.children];
+  group.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-sort]');
+    if (!btn) return;
+    group.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    const items = btn.dataset.sort === 'addr'
+      ? [...original].sort((a, b) => a.dataset.addr - b.dataset.addr)
+      : original;
+    list.append(...items);
+  });
+});
+</script>
 </body>
 </html>
