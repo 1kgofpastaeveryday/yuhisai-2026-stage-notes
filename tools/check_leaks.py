@@ -24,6 +24,37 @@ PATTERNS = {
 SKIP = {'tools/check_leaks.py'}
 
 
+def java_strings(raw):
+    """Strings stored in a Java-serialized file (REW .mdat): TC_STRING 0x74, u16 length, UTF-8."""
+    out = []
+    for m in re.finditer(b'\x74', raw):
+        n = int.from_bytes(raw[m.start() + 1:m.start() + 3], 'big')
+        chunk = raw[m.start() + 3:m.start() + 3 + n]
+        if 3 <= n <= 4096 and len(chunk) == n:
+            try:
+                s = chunk.decode('utf-8')
+            except UnicodeDecodeError:
+                continue
+            if s.isprintable():
+                out.append(s)
+    return '\n'.join(out)
+
+
+# Binary formats are scanned through an extractor that returns their text content.
+# Any other binary file fails the check: nothing opaque gets published unread.
+BINARY = {'.mdat': java_strings}
+
+
+def text_of(name, raw):
+    ext = pathlib.PurePath(name).suffix.lower()
+    if ext in BINARY:
+        return BINARY[ext](raw)
+    try:
+        return raw.decode('utf-8')
+    except UnicodeDecodeError:
+        return None
+
+
 def scan(path, text):
     hits = []
     for category, pattern in PATTERNS.items():
@@ -49,7 +80,11 @@ def main(argv):
     for name, raw in files:
         if name in SKIP or name.startswith('./') and name[2:] in SKIP:
             continue
-        hits += scan(name, raw.decode('utf-8', errors='replace'))
+        text = text_of(name, raw)
+        if text is None:
+            hits.append(f'{name}: unreadable_binary: add an extractor for this format or leave it out')
+            continue
+        hits += scan(name, text)
     for h in hits:
         print(h)
     if hits:

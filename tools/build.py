@@ -20,7 +20,9 @@ PAGES = [
     ('guide', 'index.html', '小講堂でステージを担当する人へ', '手引き'),
     ('record', 'record.html', '雄飛祭2026 小講堂ステージの作業記録', '作業記録'),
     ('ai', 'ai.html', 'AIエージェントでステージを動かした記録', 'AIエージェントの記録'),
+    ('downloads', 'downloads.html', 'ダウンロード', 'ダウンロード'),
 ]
+FILES = ROOT / 'files'  # Downloadable files, published as-is under _site/files/
 VENDOR_CSS = ROOT / 'tools/vendor/astryx/theme-neutral.css'
 
 TEMPLATE = (ROOT / 'tools/template.html').read_text()
@@ -61,6 +63,7 @@ def main():
         (OUT / filename).write_text(page)
     (OUT / 'style.css').write_text((ROOT / 'tools/style.css').read_text())
     (OUT / 'astryx-theme-neutral.css').write_text(VENDOR_CSS.read_text())
+    shutil.copytree(FILES, OUT / 'files')
     (OUT / '.nojekyll').write_text('')
     check_links()
     print('built', sorted(p.name for p in OUT.iterdir()))
@@ -74,6 +77,10 @@ def check_links():
         for href in re.findall(r'href="([^"#:]*)(?:#([^"]*))?"', page.read_text()):
             target, frag = href
             if target.startswith(('http', '//')) or target.endswith('.css'):
+                continue
+            if target.startswith('files/'):
+                if not (OUT / target).is_file():
+                    broken.append(f'{page.name}: {target}')
                 continue
             name = page.name if target == '' else 'index.html' if target == './' else target
             if name not in ids or (frag and frag not in ids[name]):
