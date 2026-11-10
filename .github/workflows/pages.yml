@@ -9,7 +9,9 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # Never cancel a run mid-deploy: a cancelled deploy-pages leaves a stale in-progress
+  # deployment that makes the next deploy fail (seen 2026-11-10). Queue instead.
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
