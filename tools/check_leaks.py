@@ -17,7 +17,7 @@ PATTERNS = {
     'private_key': r'-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----',
     'credential': r'\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|xox[baprs]-[A-Za-z0-9-]{20,}|sk-[A-Za-z0-9_-]{30,})\b',
     'personal_name': r'渡邉|渡辺|勇真|霜鳥|武井',
-    'organization_name': r'研究会|同好会',
+    # Group (club) names are published on purpose: owner decision 2026-11-10.
     'internal_note': r'<!--|根拠：|抽出元',
 }
 # This file and the workflow name the patterns themselves.
