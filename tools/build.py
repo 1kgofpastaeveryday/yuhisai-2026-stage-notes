@@ -27,7 +27,7 @@ FILES = ROOT / 'files'  # Downloadable files, published as-is under _site/files/
 # Single source for the venue DMX patch: the QLC+ workspace, the CSV download and the table
 # on the downloads page are all generated from it, so they cannot disagree.
 PATCH = ROOT / 'data/dmx-patch.csv'
-FLAG = {'点かない': '［点かない］', '暗くなっていく': '［暗くなっていく］'}
+FLAG = {'点かない': '［点かない］', '年々暗くなっている': '［年々暗くなっている］'}
 FIXTURE = {'dimmer': ('Generic', 'Generic', '1 Channel'), 'rgb': ('Generic', 'Generic RGB', 'RGB')}
 
 
