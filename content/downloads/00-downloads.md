@@ -6,7 +6,7 @@
 
 ### DMX アドレスの表
 
-小講堂の既設の灯体です。QLC+ 以外のソフトでも使えるように、表にしました。同じ内容を [CSV](files/lighting/small-auditorium-dmx.csv) でも配っています。アドレスはすべてユニバース1です。
+小講堂の既設の灯体です。QLC+ 以外のソフトでも使えるように、表にしました。同じ内容を [CSV](files/lighting/small-auditorium-dmx.csv) でも配っています。アドレスはすべてユニバース1です。表の左右は、客席から舞台を見た向きです。
 
 {{dmx_table}}
 
