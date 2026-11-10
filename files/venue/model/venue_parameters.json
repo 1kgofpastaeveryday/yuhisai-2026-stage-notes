@@ -1,0 +1,16 @@
+{
+  "stage_width": 16.0,
+  "stage_depth": 7.4,
+  "stage_front_z": 0.0,
+  "portal_z": 1.2,
+  "opening_height": 6.5,
+  "screen_z": 6.72,
+  "screen_width": 12.5,
+  "screen_height": 4.6,
+  "room_width": 20.0,
+  "auditorium_back_z": -20.0,
+  "seat_rows": 12,
+  "dimension_status": "All dimensions are photo-derived estimates, not surveyed measurements. Capture fixture positions are deliberately excluded as a metric reference per user correction.",
+  "coordinate_status": "Stage floor Y=0 and front Z=0 are convenient shared datums only. Existing Capture fixture positions are approximate; align architecture from photographs and verify light footprints separately.",
+  "rig_reference_status": "Photo set contains raised and lowered suspended battens. Movable rig omitted from fixed architecture; no maintenance-height inference."
+}

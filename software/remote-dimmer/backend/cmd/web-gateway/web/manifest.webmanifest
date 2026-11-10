@@ -1,0 +1,23 @@
+{
+  "id": "/yuhisai/2026/dimmer/",
+  "name": "照明リモート",
+  "short_name": "照明リモート",
+  "lang": "ja",
+  "start_url": "/yuhisai/2026/dimmer/",
+  "scope": "/yuhisai/2026/dimmer/",
+  "display": "standalone",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "background_color": "#1f1f1e",
+  "theme_color": "#1f1f1e",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

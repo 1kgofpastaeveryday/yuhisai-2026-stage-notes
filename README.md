@@ -5,7 +5,8 @@
 - `content/guide/`：小講堂でステージを担当する人へ（手引き）
 - `content/record/`：作業記録（手引きの根拠と、失敗の全件）
 - `content/ai/`：AIエージェントでステージを動かした記録
-- `content/downloads/` と `files/`：ダウンロード（照明の灯体パッチ、音響の測定データ）
+- `content/downloads/` と `files/`：ダウンロード（照明の灯体パッチ、会場のモデルと写真、音響の測定データ、AGENTS.md）
+- `software/`：今回のショー向けのツールのソースコード（MIT、汎用化はしていない）
 
 各フォルダの Markdown を番号順につないで1ページにします。
 

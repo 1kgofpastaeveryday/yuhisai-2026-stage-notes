@@ -1,0 +1,3 @@
+// Copy to Venue.xcconfig (git-ignored) and fill in the venue router's dedicated network.
+VENUE_WIFI_SSID = yuhisai-lighting
+VENUE_WIFI_PASSPHRASE = change-me

@@ -1,0 +1,13 @@
+__pycache__/
+node_modules/
+.validation-venv/
+*.local.json
+Stage-control.xml
+order-preview.png
+*-verification.json
+!control-verification.json
+!webapi-verification.json
+!locator-margin-verification.json
+locator-margin-preview.json
+validation/work/
+validation/results/

@@ -1,0 +1,9 @@
+{
+  "title": "RUMY（見本）",
+  "songs": [
+    {"title": "曲名 A", "jumps": [{"label": "サビ", "position": 0.32}, {"label": "ラスサビ", "position": 0.78}]},
+    {"title": "曲名 B", "jumps": [{"label": "2番", "position": 0.45}]},
+    {"title": "曲名 C"},
+    {"title": "曲名 D", "jumps": [{"label": "Bメロ", "position": 0.22}, {"label": "サビ", "position": 0.38}, {"label": "落ちサビ", "position": 0.7}]}
+  ]
+}

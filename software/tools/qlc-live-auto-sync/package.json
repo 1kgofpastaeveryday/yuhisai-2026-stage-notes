@@ -1,0 +1,13 @@
+{
+  "name": "qlc-live-auto-sync",
+  "version": "0.10.0",
+  "private": true,
+  "description": "Automatic QLC+ VC registration and Live MIDI note labels",
+  "scripts": {
+    "test": "node test.js && node test-max.js && node test-auto-layout.js && node test-pages.js && node test-debug.js && node test-cc.js && node test-scene-color.js && node test-scene-fade.js && node test-scene-brightness.js && node test-page-channels.js && node test-page-shared-rows.js"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "0.9.12",
+    "ws": "8.22.0"
+  }
+}

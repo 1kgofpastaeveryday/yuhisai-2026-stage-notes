@@ -1,0 +1,45 @@
+'use strict';
+// No user's QLC endpoint, MIDI device or physical output is accessed.
+const assert = require('assert');
+const SceneFadeState = require('./scene-fade');
+const {WebBridge} = require('./web-bridge');
+const messages = [];
+const fade = new SceneFadeState(s => messages.push(s));
+fade.configure(0,0,0); assert.equal(messages.length,0,'Default Off sends no command');
+fade.configure(1,123,1000,false); assert.equal(messages.length,0,'Gate blocks enabling, while retaining requested values');
+fade.apply(); assert.equal(messages.pop(),'QLC+API|setFadeOverride|1|123|1000');
+fade.apply(); assert.equal(messages.length,0,'Repeated cues do not flood unchanged settings');
+fade.configure(1,0,500); assert.equal(messages.pop(),'QLC+API|setFadeOverride|1|0|500','0ms remains an active override');
+for (const args of [[1,-1,0],[1,0,1001],[1,0.5,10],[2,0,0],[1,NaN,0]]) fade.configure(...args);
+assert.equal(messages.length,0);
+fade.reset(); assert.equal(messages.pop(),'QLC+API|setFadeOverride|0|0|0');
+assert.equal(fade.enabled,true,'Panic suspends runtime while preserving user settings');
+fade.apply(false); assert.equal(messages.length,0);
+fade.apply(); assert.equal(messages.pop(),'QLC+API|setFadeOverride|1|0|500','Next cue reapplies requested settings');
+fade.invalidate(); fade.apply(); assert.equal(messages.pop(),'QLC+API|setFadeOverride|1|0|500','Workspace reload/reconnect must refresh native state');
+fade.configure(0,0,0,false); assert.equal(messages.pop(),'QLC+API|setFadeOverride|0|0|0','Release is allowed through a failed gate');
+
+const bridge = new WebBridge('http://127.0.0.1:1',()=>{});
+// Inject an already verified socket; do not open a listener or real endpoint.
+bridge.socket = {readyState:1, send:s=>messages.push(s)};
+bridge.enabled = true; bridge.ready = true;
+const controls = Array.from({length:128},(_,liveNote)=>({liveNote,valid:false}));
+controls[7]={liveNote:7,widgetId:'12',valid:true,type:'Button',action:'Flash'};
+controls[8]={liveNote:8,widgetId:'13',valid:true,type:'Slider'};
+bridge.snapshot={source:'isolated',controls}; bridge.state.update(bridge.snapshot);
+bridge.sceneFadeConfig(1,1000,250); messages.length=0;
+bridge.panic(); assert.deepEqual(messages,['QLC+API|setFadeOverride|0|0|0']); messages.length=0;
+bridge.note(7,127); bridge.note(7,0);
+assert.deepEqual(messages,['QLC+API|setFadeOverride|1|1000|250','12|255','12|0'],'Override precedes cue start; Note Off retains native fade out');
+messages.length=0; bridge.panic(); messages.length=0; bridge.level(8,100); bridge.level(8,0);
+assert.deepEqual(messages,['QLC+API|setFadeOverride|1|1000|250','13|201','13|0']);
+messages.length=0; bridge.panic(); messages.length=0; bridge.ready=false;
+bridge.sceneFadeConfig(1,400,600); bridge.note(7,127); bridge.note(7,0);
+assert.deepEqual(messages,[],'Mismatched project sends neither fade enable nor new cue');
+bridge.socket=null; bridge.sceneFade.active=true; bridge.panic();
+assert.equal(bridge.deferredFadeReset,true,'Offline reset is retained for reconnect');
+bridge.socket={readyState:1,send:s=>messages.push(s)}; bridge.verifiedGeneration=bridge.generation;
+bridge.markReady(bridge.socket);
+assert.equal(messages[0],'QLC+API|setFadeOverride|0|0|0','Reconnect restores defaults before any new cue');
+assert(!messages.some(s=>s.startsWith('QLC+API|setFadeOverride|1')),'Reconnect alone never enables old overrides');
+console.log('PASS: independent0-1000ms fades, Off/0ms distinction, ordered cue/slider activation, stop/reconnect/source gates and invalid input.');

@@ -1,0 +1,10 @@
+{
+  "upstream_master": "d86decb384b09fd6bd691348eb808238314c10fc",
+  "source": "<PATH>",
+  "source_of_local_changes": "<PATH>",
+  "excluded_already_upstream": [
+    "qmlui/sceneeditor.cpp",
+    "qmlui/sceneeditor.h",
+    "qmlui/qml/fixturesfunctions/SceneFixtureConsole.qml"
+  ]
+}

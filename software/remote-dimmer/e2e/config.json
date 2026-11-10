@@ -1,0 +1,22 @@
+{
+  "listen": "127.0.0.1:8765",
+  "qlcURL": "ws://127.0.0.1:9999/qlcplusWS",
+  "project": "show.qxw",
+  "indicatorFrame": 120,
+  "assignmentsFile": "assignments.json",
+  "logFile": "remote-dimmer.log",
+  "fixtures": [
+    {
+      "name": "中央",
+      "slider": 45,
+      "universe": 1,
+      "address": 1
+    },
+    {
+      "name": "右",
+      "slider": 46,
+      "universe": 1,
+      "address": 2
+    }
+  ]
+}

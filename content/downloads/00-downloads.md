@@ -30,6 +30,35 @@
 - カラー LED のアドレスは灯体側でも設定します。表のアドレスは、今回灯体側で設定したものです。仕込みの日の朝に、14台の灯体のアドレスと ch 数（3ch）がこの表と合っているかを確かめてください。
 - ワークスペースは QLC+ 5.3.0 の形式です。QLC+ 4 で開けるかは確かめていません。Capture の CSV の機種名と位置は、Capture の上で近いものを選んで置いたもので、実際の機種や実測の位置とは限りません。
 
+## 会場のモデルと写真
+
+小講堂の 3D モデルと、Capture のプロジェクトです。寸法と客席数は写真から推定したもので、実測ではありません。Capture の灯体の位置も概略です。
+
+| ファイル | 中身 |
+|---|---|
+| [small-auditorium.c2s](files/venue/capture/small-auditorium.c2s) | 照明の計画ソフト Capture のプロジェクト。会場のモデルと灯体が入っている。Capture Student 版で作った |
+| [small-auditorium.blend](files/venue/model/small-auditorium.blend) | Blender で編集できる会場のモデル |
+| [small-auditorium-combined.glb](files/venue/model/small-auditorium-combined.glb) | 舞台と客席を合わせたモデル（glTF）。ほかのソフトに読み込むときはこれを使う |
+| [small-auditorium-stage.glb](files/venue/model/small-auditorium-stage.glb) | 舞台、舞台の開口、幕、スクリーン、前の階段だけのモデル |
+| [small-auditorium-context.glb](files/venue/model/small-auditorium-context.glb) | 客席側の壁、座席の概略、調整室の窓だけのモデル |
+| [venue_parameters.json](files/venue/model/venue_parameters.json) | モデルの推定寸法 |
+| [audience-preview0001.png](files/venue/model/audience-preview0001.png) | 客席から見たモデルのプレビュー |
+
+座標の向きは、Capture では X が横、Y が上、Z が舞台の奥です。Blender では（X, −Z, Y）になります。舞台の床が Y=0、舞台の前端が Z=0 です。
+
+### 写真
+
+| ファイル | 中身 |
+|---|---|
+| [IMG_0109.jpg](files/venue/photos/IMG_0109.jpg) | 27番（ステージ全体、差し日）の回路に対応する写真 |
+| [IMG_0113.jpg](files/venue/photos/IMG_0113.jpg) | 28番（客席右上方から舞台左側）の回路に対応する写真 |
+| [IMG_0117.jpg](files/venue/photos/IMG_0117.jpg) | 31番（客席左上方から舞台右側）の回路に対応する写真 |
+| [IMG_0121.jpg](files/venue/photos/IMG_0121.jpg) | 遠方の33・34・35・37・38番をまとめて点けたところ |
+| [house-audio-console-2026-10-20.jpg](files/venue/photos/house-audio-console-2026-10-20.jpg) | 会場の音響卓 |
+| [house-audio-inputs-2026-10-20.jpg](files/venue/photos/house-audio-inputs-2026-10-20.jpg) | 会場の音響の入力端子 |
+
+ほかの回路の写真は、客席に人が写っているか、操作画面が写っているため、載せていません。
+
 ## 音響測定
 
 [REW](https://www.roomeqwizard.com/)（無料の音響測定ソフト）で開ける測定データです。小講堂で持ち込みのスピーカー（Bose F1 Model 812 と F1 Subwoofer を左右に1組ずつ）を鳴らして測りました。
@@ -53,3 +82,16 @@
 | [AGENTS.md](files/agents/AGENTS.md) | Claude Code や Codex に読ませる指示。会場の前提と、今回の失敗から作った約束（外部への連絡、期限の再計算、報告前の確かめ方、ファイルの版、委任の仕方、公開前の検査） |
 
 リポジトリの直下に `AGENTS.md` として置くと、Codex はそのまま読みます。Claude Code では、`CLAUDE.md` に `@AGENTS.md` と1行書くと読み込みます。各項目の理由は、「[AIエージェントの記録](ai.html)」と作業記録の「[第8章 次回への提案](record.html#第8章-次回への提案)」にあります。
+
+## ツールのソースコード
+
+今回のショーのために作ったツールを、そのまま公開しています。汎用化はしていないので、使うには接続先などの設定を自分の環境に合わせる必要があります。ライセンスは MIT です（同梱の他者のコードは、それぞれのライセンスに従います）。
+
+| フォルダ | 中身 |
+|---|---|
+| [touchosc](https://github.com/1kgofpastaeveryday/yuhisai-2026-stage-notes/tree/main/software/touchosc) | TouchOSC の操作画面と、Ableton Live の Control Surface スクリプト。演目の選択、頭出し、停止と再開 |
+| [remote-dimmer](https://github.com/1kgofpastaeveryday/yuhisai-2026-stage-notes/tree/main/software/remote-dimmer) | スマートフォンからディマーを操作する照明リモート（Web、Go のサーバー、iOS アプリ） |
+| [qlc-live-auto-sync](https://github.com/1kgofpastaeveryday/yuhisai-2026-stage-notes/tree/main/software/tools/qlc-live-auto-sync) | Ableton Live と QLC+ を同期する Max for Live のデバイス |
+| [QLC+ のパッチ類](https://github.com/1kgofpastaeveryday/yuhisai-2026-stage-notes/tree/main/software/tools) | QLC+ に加えた修正とビルド用の資材 |
+
+各フォルダの説明は [software/README.md](https://github.com/1kgofpastaeveryday/yuhisai-2026-stage-notes/blob/main/software/README.md) にあります。

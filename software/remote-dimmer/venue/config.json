@@ -1,0 +1,95 @@
+{
+  "listen": ":8765",
+  "publicListen": "127.0.0.1:8766",
+  "qlcURL": "ws://127.0.0.1:9999/qlcplusWS",
+  "project": "<PATH>",
+  "indicatorFrame": 452,
+  "assignmentsFile": "<PATH>",
+  "logFile": "<PATH>",
+  "fixtures": [
+    {
+      "name": "ボーダー",
+      "slider": 438,
+      "universe": 1,
+      "address": 1
+    },
+    {
+      "name": "サス1左端",
+      "slider": 439,
+      "universe": 1,
+      "address": 4
+    },
+    {
+      "name": "サス2左寄り",
+      "slider": 440,
+      "universe": 1,
+      "address": 9
+    },
+    {
+      "name": "中央故障中",
+      "slider": 441,
+      "universe": 1,
+      "address": 8
+    },
+    {
+      "name": "サス4右寄り",
+      "slider": 442,
+      "universe": 1,
+      "address": 5
+    },
+    {
+      "name": "サス5右端",
+      "slider": 443,
+      "universe": 1,
+      "address": 6
+    },
+    {
+      "name": "全体差し日",
+      "slider": 444,
+      "universe": 1,
+      "address": 27
+    },
+    {
+      "name": "客席右上",
+      "slider": 445,
+      "universe": 1,
+      "address": 28
+    },
+    {
+      "name": "客席左上",
+      "slider": 446,
+      "universe": 1,
+      "address": 31
+    },
+    {
+      "name": "遠方右奥",
+      "slider": 447,
+      "universe": 1,
+      "address": 33
+    },
+    {
+      "name": "遠方右手前",
+      "slider": 448,
+      "universe": 1,
+      "address": 34
+    },
+    {
+      "name": "遠方中央2方向",
+      "slider": 449,
+      "universe": 1,
+      "address": 35
+    },
+    {
+      "name": "遠方左手前",
+      "slider": 450,
+      "universe": 1,
+      "address": 37
+    },
+    {
+      "name": "遠方中央左",
+      "slider": 451,
+      "universe": 1,
+      "address": 38
+    }
+  ]
+}

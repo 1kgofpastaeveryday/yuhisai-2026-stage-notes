@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Workspace>
+<Workspace xmlns="http://www.qlcplus.org/Workspace" CurrentWindow="VirtualConsole">
+ <Creator><Name>Q Light Controller Plus</Name><Version>4.14.3</Version><Author>DimmerRemote E2E</Author></Creator>
+ <Engine>
+  <InputOutputMap><Universe Name="Universe 1" ID="0"/></InputOutputMap>
+  <Fixture><Manufacturer>Generic</Manufacturer><Model>Generic</Model><Mode>1 Channel</Mode><ID>0</ID><Name>中央</Name><Universe>0</Universe><Address>0</Address><Channels>1</Channels></Fixture>
+  <Fixture><Manufacturer>Generic</Manufacturer><Model>Generic</Model><Mode>1 Channel</Mode><ID>1</ID><Name>右</Name><Universe>0</Universe><Address>1</Address><Channels>1</Channels></Fixture>
+ </Engine>
+ <VirtualConsole>
+  <Frame ID="1" Caption="Dimmer Remote E2E">
+   <WindowState X="0" Y="0" Width="900" Height="600" Visible="True"/>
+   <Slider ID="45" Caption="中央" InvertedAppearance="false">
+    <WindowState X="30" Y="120" Width="90" Height="350" Visible="True"/>
+    <Appearance><FrameStyle>Sunken</FrameStyle><ForegroundColor>Default</ForegroundColor><BackgroundColor>Default</BackgroundColor><BackgroundImage>None</BackgroundImage><Font>Default</Font></Appearance>
+    <SliderMode ValueDisplayStyle="Exact">Level</SliderMode>
+    <Level LowLimit="0" HighLimit="255" Value="0"><Channel Fixture="0">0</Channel></Level>
+    <Playback><Function>4294967295</Function></Playback>
+   </Slider>
+   <Slider ID="46" Caption="右" InvertedAppearance="false">
+    <WindowState X="150" Y="120" Width="90" Height="350" Visible="True"/>
+    <Appearance><FrameStyle>Sunken</FrameStyle><ForegroundColor>Default</ForegroundColor><BackgroundColor>Default</BackgroundColor><BackgroundImage>None</BackgroundImage><Font>Default</Font></Appearance>
+    <SliderMode ValueDisplayStyle="Exact">Level</SliderMode>
+    <Level LowLimit="0" HighLimit="255" Value="0"><Channel Fixture="1">0</Channel></Level>
+    <Playback><Function>4294967295</Function></Playback>
+   </Slider>
+   <Frame ID="120" Caption="iPhone">
+    <WindowState X="10" Y="10" Width="860" Height="90" Visible="True"/>
+    <Multipage PagesNum="2" CurrentPage="0"/>
+    <PagesLoop>False</PagesLoop><ShowHeader>False</ShowHeader>
+    <Label ID="121" Caption="iPhone 稼働中　Ableton の前にサーバーを止める" Page="1">
+     <WindowState X="0" Y="0" Width="850" Height="80" Visible="True"/>
+     <Appearance><FrameStyle>None</FrameStyle><ForegroundColor>4294967295</ForegroundColor><BackgroundColor>4294901760</BackgroundColor><BackgroundImage>None</BackgroundImage><Font>Helvetica,22,-1,5,75,0,0,0,0,0</Font></Appearance>
+    </Label>
+   </Frame>
+  </Frame>
+  <Properties><Size Width="900" Height="600"/><GrandMaster ChannelMode="Intensity" ValueMode="Reduce"/></Properties>
+ </VirtualConsole>
+ <SimpleDesk><Engine/></SimpleDesk>
+</Workspace>

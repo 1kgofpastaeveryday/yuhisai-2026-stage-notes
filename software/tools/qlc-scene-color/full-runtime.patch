@@ -1,0 +1,1210 @@
+diff --git a/engine/src/function.cpp b/engine/src/function.cpp
+index 3871157..1f25651 100644
+--- a/engine/src/function.cpp
++++ b/engine/src/function.cpp
+@@ -24,6 +24,7 @@
+ #include <QString>
+ #include <QDebug>
+ #include <math.h>
++#include <atomic>
+ 
+ #include "qlcmacros.h"
+ #include "qlcfile.h"
+@@ -679,6 +680,29 @@ void Function::setOverrideFadeInSpeed(uint ms)
+     m_overrideFadeInSpeed = ms;
+ }
+ 
++namespace { std::atomic<quint32> globalFadeTimes{0xffffffffu}; }
++
++void Function::setGlobalFadeOverride(int fadeInMs, int fadeOutMs)
++{
++    if (fadeInMs < -1 || fadeInMs > 1000 || fadeOutMs < -1 || fadeOutMs > 1000)
++        return;
++    const quint32 in = fadeInMs < 0 ? 0xffffu : quint32(fadeInMs);
++    const quint32 out = fadeOutMs < 0 ? 0xffffu : quint32(fadeOutMs);
++    globalFadeTimes.store((in << 16) | out);
++}
++
++int Function::globalFadeInOverride()
++{
++    const quint32 value = globalFadeTimes.load() >> 16;
++    return value == 0xffffu ? -1 : int(value);
++}
++
++int Function::globalFadeOutOverride()
++{
++    const quint32 value = globalFadeTimes.load() & 0xffffu;
++    return value == 0xffffu ? -1 : int(value);
++}
++
+ uint Function::overrideFadeInSpeed() const
+ {
+     return m_overrideFadeInSpeed;
+diff --git a/engine/src/function.h b/engine/src/function.h
+index 38361f1..6ede9bd 100644
+--- a/engine/src/function.h
++++ b/engine/src/function.h
+@@ -519,6 +519,13 @@ public:
+     /** Get the override fade in speed */
+     uint overrideFadeInSpeed() const;
+ 
++    /** Runtime fade override in milliseconds; -1 restores Function settings.
++     * Scene (including Flash) and RGBMatrix consume these values at transitions.
++     * Never changes the speeds stored in the workspace. */
++    static void setGlobalFadeOverride(int fadeInMs, int fadeOutMs);
++    static int globalFadeInOverride();
++    static int globalFadeOutOverride();
++
+     /** Set the override fade out speed (done by chaser in Common speed mode) */
+     void setOverrideFadeOutSpeed(uint ms);
+ 
+diff --git a/engine/src/genericfader.cpp b/engine/src/genericfader.cpp
+index 940b7b2..7f4abea 100644
+--- a/engine/src/genericfader.cpp
++++ b/engine/src/genericfader.cpp
+@@ -18,10 +18,21 @@
+ */
+ 
+ #include <QDebug>
++#include <atomic>
++#include <utility>
+ 
+ #include "genericfader.h"
+ #include "fadechannel.h"
+ #include "doc.h"
++#include "fixture.h"
++
++namespace { std::atomic<int> sceneColorRGB{-1}; std::atomic<int> brightnessPercent{-1}; std::atomic<int> rgbBrightnessPercent{-1}; }
++void GenericFader::setSceneColorOverride(int rgb) { sceneColorRGB.store(rgb); }
++int GenericFader::sceneColorOverride() { return sceneColorRGB.load(); }
++void GenericFader::setBrightnessOverride(int percent) { if (percent >= -1 && percent <= 100) brightnessPercent.store(percent); }
++int GenericFader::brightnessOverride() { return brightnessPercent.load(); }
++void GenericFader::setRGBBrightnessOverride(int percent) { if (percent >= -1 && percent <= 100) rgbBrightnessPercent.store(percent); }
++int GenericFader::rgbBrightnessOverride() { return rgbBrightnessPercent.load(); }
+ 
+ GenericFader::GenericFader(QObject *parent)
+     : QObject(parent)
+@@ -234,6 +245,55 @@ void GenericFader::write(Universe *universe, uint elapsedMs)
+     // iterate through all the channels handled by this fader
+     QWriteLocker l(&m_channelsLock);
+     QMutableHashIterator <quint32,FadeChannel> it(m_channels);
++    const int overrideRGB = m_colorDoc ? sceneColorOverride() : -1;
++    const int brightness = m_colorDoc ? brightnessOverride() : -1;
++    const int rgbOnlyBrightness = m_colorDoc ? rgbBrightnessOverride() : -1;
++    const int rgbBrightness = rgbOnlyBrightness >= 0 ? rgbOnlyBrightness : brightness;
++    struct RGBOutput { quint32 address[3]; quint32 values[3] = {}; quint32 peak = 0; quint32 level = 0; bool flashing = false; bool forceLTP = false; };
++    QHash<quint32, RGBOutput> rgbOutputs;
++    QHash<quint32, quint32> rgbChannels;
++    // Remember the native nonzero target through releases, including a release
++    // during fade-in. Normalizing to the partial release start would cause a jump.
++    if (m_colorDoc)
++    {
++        QHash<quint32, quint32> targets;
++        for (const FadeChannel &fc : std::as_const(m_channels))
++        {
++            Fixture *fixture = m_colorDoc->fixture(fc.fixture());
++            if (!fixture || fc.channelCount() != 1 || !fixture->channel(fc.channel())) continue;
++            const auto *channel = fixture->channel(fc.channel());
++            if (fc.target() && channel->group() == QLCChannel::Intensity)
++                m_brightnessDimmerPeaks[channelHash(fc.fixture(), fc.channel())] = fc.target();
++            if (channel->colour() == QLCChannel::Red || channel->colour() == QLCChannel::Green || channel->colour() == QLCChannel::Blue)
++                targets[fc.fixture()] = qMax(targets.value(fc.fixture()), fc.target());
++        }
++        for (auto target = targets.constBegin(); target != targets.constEnd(); ++target)
++            if (target.value()) m_brightnessRGBPeaks[target.key()] = target.value();
++    }
++    if (overrideRGB >= 0 || rgbBrightness >= 0)
++    {
++        for (const FadeChannel &fc : std::as_const(m_channels))
++        {
++            Fixture *fixture = m_colorDoc->fixture(fc.fixture());
++            if (!fixture || fc.channelCount() != 1 || fixture->heads() != 1) continue;
++            const quint32 channels[] = {
++                fixture->channelNumber(QLCChannel::Red, QLCChannel::MSB),
++                fixture->channelNumber(QLCChannel::Green, QLCChannel::MSB),
++                fixture->channelNumber(QLCChannel::Blue, QLCChannel::MSB)};
++            if (channels[0] == QLCChannel::invalid() || channels[1] == QLCChannel::invalid() || channels[2] == QLCChannel::invalid()) continue;
++            if (fixture->channelNumber(QLCChannel::Red, QLCChannel::LSB) != QLCChannel::invalid() ||
++                fixture->channelNumber(QLCChannel::Green, QLCChannel::LSB) != QLCChannel::invalid() ||
++                fixture->channelNumber(QLCChannel::Blue, QLCChannel::LSB) != QLCChannel::invalid()) continue;
++            if (fc.channel() != channels[0] && fc.channel() != channels[1] && fc.channel() != channels[2]) continue;
++            const quint32 base = fixture->universeAddress();
++            if ((base + channels[0]) / 512 != universe->id() || (base + channels[1]) / 512 != universe->id() ||
++                (base + channels[2]) / 512 != universe->id()) continue;
++            RGBOutput output;
++            for (int i = 0; i < 3; ++i) output.address[i] = (base + channels[i]) % 512;
++            if (!rgbOutputs.contains(fc.fixture())) rgbOutputs.insert(fc.fixture(), output);
++            rgbChannels.insert(channelHash(fc.fixture(), fc.channel()), fc.fixture());
++        }
++    }
+     while (it.hasNext() == true)
+     {
+         FadeChannel& fc(it.next().value());
+@@ -278,29 +338,50 @@ void GenericFader::write(Universe *universe, uint elapsedMs)
+             }
+         }
+ 
+-        //qDebug() << "[GenericFader] >>> uni:" << universe->id() << ", address:" << address << ", value:" << value << "int:" << compIntensity;
+-        if (flags & FadeChannel::Override)
++        const auto rgbChannel = rgbChannels.constFind(channelHash(fc.fixture(), fc.channel()));
++        if (rgbChannel != rgbChannels.constEnd())
+         {
+-            universe->write(address, value, true);
+-            continue;
+-        }
+-        else if (flags & FadeChannel::Relative)
+-        {
+-            universe->writeRelative(address, value, channelCount);
+-        }
+-        else if (flags & FadeChannel::Flashing)
+-        {
+-            for (int i = 0; i < channelCount; i++)
+-                universe->write(address + i, ((uchar *)&value)[channelCount - 1 - i],
+-                                flags & FadeChannel::ForceLTP ? true : false);
+-            continue;
++            RGBOutput &output = rgbOutputs[*rgbChannel];
++            output.level = qMax(output.level, value);
++            output.peak = qMax(output.peak, qMax(fc.start(), fc.target()));
++            for (int i = 0; i < 3; ++i) if (output.address[i] == address) output.values[i] = value;
++            output.flashing |= flags & FadeChannel::Flashing;
++            output.forceLTP |= flags & (FadeChannel::ForceLTP | FadeChannel::Override);
+         }
+         else
+         {
+-            // treat value as a whole, so do this just once per FadeChannel
+-            universe->writeBlended(address, value, channelCount, m_blendMode);
+-        }
++            // Normalize only a fixture's 8-bit dimmer, never position/strobe channels.
++            Fixture *fixture = brightness >= 0 ? m_colorDoc->fixture(fc.fixture()) : nullptr;
++            if (fixture && channelCount == 1 && fixture->channel(fc.channel()) &&
++                fixture->channel(fc.channel())->group() == QLCChannel::Intensity)
++            {
++                const quint32 peak = m_brightnessDimmerPeaks.value(channelHash(fc.fixture(), fc.channel()), qMax(fc.start(), fc.target()));
++                value = peak ? qMin(255, qRound(value * 255.0 * brightness / (100.0 * peak))) : 0;
++            }
++            //qDebug() << "[GenericFader] >>> uni:" << universe->id() << ", address:" << address << ", value:" << value << "int:" << compIntensity;
++            if (flags & FadeChannel::Override)
++            {
++                universe->write(address, value, true);
++                continue;
++            }
++            else if (flags & FadeChannel::Relative)
++            {
++                universe->writeRelative(address, value, channelCount);
++            }
++            else if (flags & FadeChannel::Flashing)
++            {
++                for (int i = 0; i < channelCount; i++)
++                    universe->write(address + i, ((uchar *)&value)[channelCount - 1 - i],
++                                    flags & FadeChannel::ForceLTP ? true : false);
++                continue;
++            }
++            else
++            {
++                // treat value as a whole, so do this just once per FadeChannel
++                universe->writeBlended(address, value, channelCount, m_blendMode);
++            }
+ 
++        }
+         if (((flags & FadeChannel::Intensity) &&
+             (flags & FadeChannel::HTP) &&
+             m_blendMode == Universe::NormalBlend) || m_fadeOut)
+@@ -315,6 +396,23 @@ void GenericFader::write(Universe *universe, uint elapsedMs)
+             it.remove();
+     }
+ 
++    // The native envelopes and stored targets are untouched. Recolour their
++    // current maximum component so hue can change without lighting idle fixtures.
++    for (auto rgb = rgbOutputs.constBegin(); rgb != rgbOutputs.constEnd(); ++rgb)
++    {
++        const RGBOutput &output = rgb.value();
++        const quint32 peak = m_brightnessRGBPeaks.value(rgb.key(), output.peak);
++        const int components[] = {qRed(overrideRGB), qGreen(overrideRGB), qBlue(overrideRGB)};
++        for (int i = 0; i < 3; ++i)
++        {
++            const qreal nativeValue = overrideRGB >= 0 ? output.level * components[i] / 255.0 : output.values[i];
++            const qreal scale = rgbBrightness < 0 ? 1.0 : peak ? 255.0 * rgbBrightness / (100.0 * peak) : 0.0;
++            const uchar value = qBound(0, qRound(nativeValue * scale), 255);
++            if (output.flashing || output.forceLTP) universe->write(output.address[i], value, output.forceLTP);
++            else universe->writeBlended(output.address[i], value, 1, m_blendMode);
++        }
++    }
++
+     // self-request deletion when fadeout is complete
+     if (m_fadeOut && m_channels.isEmpty())
+     {
+diff --git a/engine/src/genericfader.h b/engine/src/genericfader.h
+index caac2db..e11fc21 100644
+--- a/engine/src/genericfader.h
++++ b/engine/src/genericfader.h
+@@ -30,6 +30,7 @@
+ #include "scenevalue.h"
+ 
+ class FadeChannel;
++class Doc;
+ 
+ /** @addtogroup engine Engine
+  * @{
+@@ -121,6 +122,15 @@ public:
+      */
+     void write(Universe *universe, uint elapsedMs);
+ 
++    /** Runtime RGB override for tagged Scene and RGB Matrix output. -1 restores stored colours. */
++    static void setSceneColorOverride(int rgb);
++    static int sceneColorOverride();
++    static void setBrightnessOverride(int percent);
++    static int brightnessOverride();
++    static void setRGBBrightnessOverride(int percent);
++    static int rgbBrightnessOverride();
++    void setColorSource(const Doc *doc) { m_colorDoc = doc; }
++
+     /**
+      * Update one channel while holding the internal channel lock.
+      * This avoids exposing raw FadeChannel pointers across threads.
+@@ -175,6 +185,9 @@ signals:
+     void preWriteData(quint32 index, const QByteArray& universeData);
+ 
+ private:
++    const Doc *m_colorDoc = nullptr;
++    QHash<quint32, quint32> m_brightnessRGBPeaks;
++    QHash<quint32, quint32> m_brightnessDimmerPeaks;
+     QString m_name;
+     quint32 m_fid;
+     int m_priority;
+diff --git a/engine/src/rgbmatrix.cpp b/engine/src/rgbmatrix.cpp
+index d4dce0e..ca7b512 100644
+--- a/engine/src/rgbmatrix.cpp
++++ b/engine/src/rgbmatrix.cpp
+@@ -792,6 +792,9 @@ void RGBMatrix::write(MasterTimer *timer, QList<Universe *> universes)
+ void RGBMatrix::postRun(MasterTimer *timer, QList<Universe *> universes)
+ {
+     uint fadeout = overrideFadeOutSpeed() == defaultSpeed() ? fadeOutSpeed() : overrideFadeOutSpeed();
++    const int globalFadeOut = Function::globalFadeOutOverride();
++    if (globalFadeOut >= 0)
++        fadeout = uint(globalFadeOut);
+ 
+     /* If no fade out is needed, dismiss all the requested faders.
+      * Otherwise, set all the faders to fade out and let Universe dismiss them
+@@ -802,7 +805,7 @@ void RGBMatrix::postRun(MasterTimer *timer, QList<Universe *> universes)
+     }
+     else
+     {
+-        if (tempoType() == Beats)
++        if (globalFadeOut < 0 && tempoType() == Beats)
+             fadeout = beatsToTime(fadeout, timer->beatTimeDuration());
+ 
+         foreach (QSharedPointer<GenericFader> fader, m_fadersMap)
+@@ -856,6 +859,7 @@ QSharedPointer<GenericFader> RGBMatrix::getFader(Universe *universe)
+     if (fader.isNull())
+     {
+         fader = universe->requestFader();
++        fader->setColorSource(doc());
+         fader->adjustIntensity(getAttributeValue(Intensity));
+         fader->setBlendMode(blendMode());
+         fader->setName(name());
+@@ -881,7 +885,10 @@ void RGBMatrix::updateFaderValues(FadeChannel &fc, uchar value, uint fadeTime)
+     fc.setElapsed(0);
+     fc.setReady(false);
+     // fade in/out depends on target value
+-    if (value == 0)
++    const int globalFade = value == 0 ? Function::globalFadeOutOverride() : Function::globalFadeInOverride();
++    if (globalFade >= 0)
++        fc.setFadeTime(uint(globalFade));
++    else if (value == 0)
+         fc.setFadeTime(fadeOutSpeed());
+     else
+         fc.setFadeTime(fadeTime);
+diff --git a/engine/src/scene.cpp b/engine/src/scene.cpp
+index 09099c6..7e4dc2f 100644
+--- a/engine/src/scene.cpp
++++ b/engine/src/scene.cpp
+@@ -698,12 +698,20 @@ void Scene::writeDMX(MasterTimer *timer, QList<Universe *> ua)
+                     fader->setBlendMode(blendMode());
+                     fader->setName(name());
+                     fader->setParentFunctionID(id());
++                    fader->setColorSource(doc());
+                     m_fadersMap[universe] = fader;
+                 }
+ 
+                 if (m_flashForceLTP)
+                     fc.addFlag(FadeChannel::ForceLTP);
+                 fc.setTarget(sv.value);
++                const int fadeIn = Function::globalFadeInOverride();
++                if (fadeIn >= 0 && fc.canFade())
++                {
++                    fc.setCurrent(ua[universe]->preGMValue(fc.addressInUniverse()));
++                    fc.setStart(fc.current());
++                    fc.setFadeTime(uint(fadeIn));
++                }
+                 fc.addFlag(FadeChannel::Flashing);
+                 fader->add(fc);
+             }
+@@ -741,6 +749,7 @@ void Scene::processValue(MasterTimer *timer, QList<Universe*> ua, uint fadeIn, c
+         fader->setBlendMode(blendMode());
+         fader->setName(name());
+         fader->setParentFunctionID(id());
++        fader->setColorSource(doc());
+         fader->setParentIntensity(getAttributeValue(ParentIntensity));
+         fader->setHandleSecondary(true);
+         m_fadersMap[universe->id()] = fader;
+@@ -773,7 +782,12 @@ void Scene::processValue(MasterTimer *timer, QList<Universe*> ua, uint fadeIn, c
+         }
+         else
+         {
+-            if (tempoType() == Beats)
++            const int globalFadeIn = Function::globalFadeInOverride();
++            if (globalFadeIn >= 0)
++            {
++                fc.setFadeTime(uint(globalFadeIn));
++            }
++            else if (tempoType() == Beats)
+             {
+                 int fadeInTime = beatsToTime(fadeIn, timer->beatTimeDuration());
+                 int beatOffset = timer->nextBeatTimeOffset();
+@@ -794,6 +808,9 @@ void Scene::processValue(MasterTimer *timer, QList<Universe*> ua, uint fadeIn, c
+ void Scene::handleFadersEnd(MasterTimer *timer)
+ {
+     uint fadeout = overrideFadeOutSpeed() == defaultSpeed() ? fadeOutSpeed() : overrideFadeOutSpeed();
++    const int globalFadeOut = Function::globalFadeOutOverride();
++    if (globalFadeOut >= 0)
++        fadeout = uint(globalFadeOut);
+ 
+     /* If no fade out is needed, dismiss all the requested faders.
+      * Otherwise, set all the faders to fade out and let Universe dismiss them
+@@ -804,7 +821,7 @@ void Scene::handleFadersEnd(MasterTimer *timer)
+     }
+     else
+     {
+-        if (tempoType() == Beats)
++        if (globalFadeOut < 0 && tempoType() == Beats)
+             fadeout = beatsToTime(fadeout, timer->beatTimeDuration());
+ 
+         foreach (QSharedPointer<GenericFader> fader, m_fadersMap)
+diff --git a/qmlui/app.cpp b/qmlui/app.cpp
+index b59ac7c..b54c156 100644
+--- a/qmlui/app.cpp
++++ b/qmlui/app.cpp
+@@ -40,6 +40,10 @@
+ #include <QFileInfo>
+ #include <QFileOpenEvent>
+ #include <QDir>
++#include <QSaveFile>
++#include <QUuid>
++#include <QDateTime>
++#include <QStandardPaths>
+ #include <unistd.h>
+ 
+ #include "app.h"
+@@ -147,10 +151,7 @@ App::~App()
+         settings.setValue(SETTINGS_GEOMETRY, QVariant());
+ #endif
+ 
+-    /* remove autosave file if present */
+-    QFile asFile(autoSaveFileName());
+-    if (asFile.exists())
+-        asFile.remove();
++    m_periodicSaveTimer.stop();
+ }
+ 
+ QString App::appName() const
+@@ -651,7 +652,11 @@ bool App::docModified() const
+ 
+ void App::slotDocAutosave()
+ {
+-    saveXML(autoSaveFileName(), true);
++    if (!m_doc->isModified() || m_doc->loadStatus() == Doc::Loading)
++        return;
++    const QString target = m_fileName.isEmpty() ? autoSaveFileName() : m_fileName;
++    if (saveXML(target, m_fileName.isEmpty()) != QFile::NoError)
++        qWarning() << "Automatic workspace save failed:" << target;
+ }
+ 
+ void App::initDoc()
+@@ -660,7 +665,10 @@ void App::initDoc()
+     m_doc = new Doc(this);
+ 
+     connect(m_doc, SIGNAL(modified(bool)), this, SIGNAL(docModifiedChanged()));
+-    connect(m_doc, SIGNAL(needAutosave()), this, SLOT(slotDocAutosave()));
++    // A fixed cadence cannot be postponed indefinitely by continuous editing.
++    m_periodicSaveTimer.setInterval(30000);
++    connect(&m_periodicSaveTimer, &QTimer::timeout, this, &App::slotDocAutosave);
++    m_periodicSaveTimer.start();
+     connect(m_doc->masterTimer(), SIGNAL(functionListChanged()),
+             this, SIGNAL(runningFunctionsCountChanged()));
+ 
+@@ -867,17 +875,14 @@ QString App::fileName() const
+ 
+ QString App::autoSaveFileName() const
+ {
+-    QString fName = m_fileName;
+-
+-    if (fName.isEmpty())
+-        fName = "NewProject.autosave.qxw";
+-    else
++    if (m_fileName.isEmpty())
+     {
+-        fName.remove(".qxw");
+-        fName.append(".autosave.qxw");
++        const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
++        QDir().mkpath(dir);
++        return QDir(dir).filePath("NewProject.autosave.qxw");
+     }
+-
+-    return fName;
++    const QFileInfo info(m_fileName);
++    return info.dir().filePath(info.completeBaseName() + ".autosave.qxw");
+ }
+ 
+ void App::updateRecentFilesList(QString filename)
+@@ -1226,16 +1231,22 @@ bool App::loadXML(QXmlStreamReader &doc, bool goToConsole, bool fromMemory)
+ 
+ QFile::FileError App::saveXML(const QString& fileName, bool autosave)
+ {
+-#if defined(Q_OS_ANDROID)
+-    const QString outputFileName(fileName);
+-#else
+-    QString tempFileName(fileName);
+-    tempFileName += ".temp";
+-    const QString outputFileName(tempFileName);
+-#endif
++    // Preserve the last on-disk revision before replacing it, for manual and
++    // automatic saves alike. Never sacrifice the original if backup fails.
++    QDir backupDir(QFileInfo(fileName).absoluteFilePath() + ".backups");
++    if (QFileInfo::exists(fileName))
++    {
++        if (!QDir().mkpath(backupDir.absolutePath()))
++            return QFile::WriteError;
++        const QString revision = QDateTime::currentDateTimeUtc().toString("yyyyMMdd-HHmmss-zzz")
++                + "-" + QUuid::createUuid().toString(QUuid::WithoutBraces) + ".qxw";
++        if (!QFile::copy(fileName, backupDir.filePath(revision)))
++            return QFile::WriteError;
++    }
+ 
+-    QFile file(outputFileName);
+-    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate) == false)
++    QSaveFile file(fileName);
++    file.setDirectWriteFallback(false);
++    if (!file.open(QIODevice::WriteOnly))
+         return file.error();
+ 
+     QXmlStreamWriter doc(&file);
+@@ -1274,32 +1285,18 @@ QFile::FileError App::saveXML(const QString& fileName, bool autosave)
+ 
+     if (doc.hasError())
+     {
+-        qWarning() << Q_FUNC_INFO << "Error writing XML to" << outputFileName;
+-        file.close();
+-#if !defined(Q_OS_ANDROID)
+-        file.remove();
+-#endif
++        qWarning() << Q_FUNC_INFO << "Error writing XML to" << fileName;
++        file.cancelWriting();
+         return QFile::WriteError;
+     }
+ 
+-    file.close();
+-    if (file.error() != QFile::NoError)
+-        return file.error();
++    if (!file.commit())
++        return file.error() == QFile::NoError ? QFile::WriteError : file.error();
+ 
+-#if !defined(Q_OS_ANDROID)
+-    // Save to actual requested file name
+-    QFile currFile(fileName);
+-    if (currFile.exists() && !currFile.remove())
+-    {
+-        qWarning() << "Could not erase" << fileName;
+-        return currFile.error();
+-    }
+-    if (!file.rename(fileName))
+-    {
+-        qWarning() << "Could not rename" << tempFileName << "to" << fileName;
+-        return file.error();
+-    }
+-#endif
++    // Retain the 30 newest previous revisions, scoped to this workspace.
++    const auto revisions = backupDir.entryList({"*.qxw"}, QDir::Files, QDir::Name);
++    for (int i = 0; i < revisions.size() - 30; ++i)
++        backupDir.remove(revisions.at(i));
+ 
+     if (!autosave)
+     {
+diff --git a/qmlui/app.h b/qmlui/app.h
+index 7a7e3fd..b83cc8e 100644
+--- a/qmlui/app.h
++++ b/qmlui/app.h
+@@ -24,6 +24,7 @@
+ #include <QQuickView>
+ #include <QQuickItem>
+ #include <QObject>
++#include <QTimer>
+ #include "doc.h"
+ 
+ class MainView2D;
+@@ -400,6 +401,7 @@ public slots:
+ 
+ private:
+     QString m_fileName;
++    QTimer m_periodicSaveTimer;
+     QStringList m_recentFiles;
+     QString m_workingPath;
+ 
+diff --git a/qmlui/functionmanager.cpp b/qmlui/functionmanager.cpp
+index 0e63180..f04142a 100644
+--- a/qmlui/functionmanager.cpp
++++ b/qmlui/functionmanager.cpp
+@@ -663,16 +663,18 @@ void FunctionManager::setEditorFunction(quint32 fID, bool requestUI, bool back)
+         if (!back)
+             previousID = m_currentEditor->functionID();
+ 
+-        delete m_currentEditor;
++        auto *oldEditor = m_currentEditor;
+         m_currentEditor = nullptr;
++        delete oldEditor;
+     }
+     if (m_sceneEditor != nullptr)
+     {
+         if (m_sceneEditor->functionID() == fID && !back)
+             return;
+ 
+-        delete m_sceneEditor;
++        auto *oldEditor = m_sceneEditor;
+         m_sceneEditor = nullptr;
++        delete oldEditor;
+     }
+ 
+     if ((int)fID == -1)
+@@ -836,6 +838,22 @@ bool FunctionManager::isEditing() const
+     return false;
+ }
+ 
++static TreeModelItem *functionTreeItem(TreeModel *model, Function *function)
++{
++    for (TreeModelItem *item : model->items())
++    {
++        if (item->data(0).value<Function *>() == function)
++            return item;
++        if (item->hasChildren())
++        {
++            TreeModelItem *found = functionTreeItem(item->children(), function);
++            if (found != nullptr)
++                return found;
++        }
++    }
++    return nullptr;
++}
++
+ void FunctionManager::deleteFunction(quint32 fid)
+ {
+     Function *f = m_doc->function(fid);
+@@ -864,15 +882,9 @@ void FunctionManager::deleteFunction(quint32 fid)
+                                       Tardis::instance()->actionToByteArray(Tardis::FunctionDelete, f->id()),
+                                       QVariant());
+ 
+-    QString fullPath = f->name();
+-    QString funcPath = f->path(true);
+-    if (funcPath.isEmpty() == false)
+-    {
+-        funcPath.replace("/", TreeModel::separator());
+-        fullPath = QString("%1%2%3").arg(funcPath).arg(TreeModel::separator()).arg(f->name());
+-    }
+-    m_doc->deleteFunction(f->id());
+-    m_functionTree->removeItem(fullPath);
++    const quint32 functionID = f->id();
++    m_functionTree->removeItem(functionTreeItem(m_functionTree, f));
++    m_doc->deleteFunction(functionID);
+ }
+ 
+ void FunctionManager::deleteFunctions(QVariantList IDList)
+@@ -905,17 +917,7 @@ void FunctionManager::moveFunction(quint32 fID, QString newPath)
+     newPathSlashed.replace(TreeModel::separator(), "/");
+ 
+     QString fPath = f->path(true);
+-    if (fPath.isEmpty())
+-    {
+-        m_functionTree->removeItem(f->name());
+-    }
+-    else
+-    {
+-        QString ftPath = fPath;
+-        QString itemPath = QString("%1%2%3").arg(ftPath.replace("/", TreeModel::separator()))
+-                                            .arg(TreeModel::separator()).arg(f->name());
+-        m_functionTree->removeItem(itemPath);
+-    }
++    m_functionTree->removeItem(functionTreeItem(m_functionTree, f));
+ 
+     Tardis::instance()->enqueueAction(Tardis::FunctionSetPath, f->id(), fPath, newPathSlashed);
+     f->setPath(newPathSlashed);
+@@ -1093,28 +1095,11 @@ bool FunctionManager::renameSelectedItems(QString newName, bool numbering, int s
+             return false;
+ 
+         QString oldName = f->name();
+-        QString oldTreePath = oldName;
+-        QString fPath = f->path(true);
+-        if (!fPath.isEmpty())
+-        {
+-            fPath.replace("/", TreeModel::separator());
+-            oldTreePath = QString("%1%2%3").arg(fPath).arg(TreeModel::separator()).arg(oldName);
+-        }
+-
+         Tardis::instance()->enqueueAction(Tardis::FunctionSetName, f->id(), oldName, fName);
+         f->setName(fName);
+ 
+-        if (!oldTreePath.isEmpty() && m_functionTree->removeItem(oldTreePath))
+-        {
+-            QVariantList params;
+-            params.append(QVariant::fromValue(f)); // classRef
+-            params.append(App::FunctionDragItem); // type
+-
+-            QString treePath = f->path(true).replace("/", TreeModel::separator());
+-            TreeModelItem *item = m_functionTree->addItem(fName, params, treePath);
+-            if (item != nullptr && m_selectedIDList.contains(QVariant(f->id())))
+-                item->setFlag(TreeModel::Selected, true);
+-        }
++        // nameChanged updates the exact tree item synchronously.
++
+     }
+ 
+     return true;
+@@ -1904,10 +1889,7 @@ void FunctionManager::slotFunctionNameChanged(quint32 fid)
+         if (item->label() == func->name())
+             return;
+ 
+-        QString oldPath = fPath.isEmpty() ? item->label()
+-                                          : QString("%1%2%3").arg(fPath)
+-                                            .arg(TreeModel::separator()).arg(item->label());
+-        if (m_functionTree->removeItem(oldPath) == false)
++        if (m_functionTree->removeItem(item) == false)
+             return;
+ 
+         QVariantList params;
+diff --git a/qmlui/qml/fixturesfunctions/SceneFixtureConsole.qml b/qmlui/qml/fixturesfunctions/SceneFixtureConsole.qml
+index bb98f7f..7b271bf 100644
+--- a/qmlui/qml/fixturesfunctions/SceneFixtureConsole.qml
++++ b/qmlui/qml/fixturesfunctions/SceneFixtureConsole.qml
+@@ -30,8 +30,15 @@ Rectangle
+     color: "transparent"
+     objectName: "sceneFixtureConsole"
+ 
+-    Component.onCompleted: sceneEditor.sceneConsoleLoaded(true)
+-    Component.onDestruction: sceneEditor.sceneConsoleLoaded(false)
++    // Keep the backend that created this view: a new editor may already be
++    // installed in the global context when old delegates finish destruction.
++    property var consoleEditor: sceneEditor
++    Component.onCompleted:
++    {
++        consoleEditor = sceneEditor
++        if (consoleEditor) consoleEditor.sceneConsoleLoaded(true)
++    }
++    Component.onDestruction: if (consoleEditor) consoleEditor.sceneConsoleLoaded(false)
+ 
+     property bool isSceneEditor: true
+     property bool multipleSelection: false
+@@ -52,7 +59,7 @@ Rectangle
+      *  by the Scene editor through the standard Fixture selection */
+     Connections
+     {
+-        target: sceneEditor
++        target: consoleEditor
+         ignoreUnknownSignals: true
+ 
+         function onExternalMapChanged()
+@@ -78,7 +85,7 @@ Rectangle
+         id: fixtureList
+         anchors.fill: parent
+         orientation: ListView.Horizontal
+-        model: sceneEditor.fixtureList
++        model: consoleEditor ? consoleEditor.fixtureList : null
+         boundsBehavior: Flickable.StopAtBounds
+         highlightFollowsCurrentItem: false
+         currentIndex: -1
+@@ -87,12 +94,12 @@ Rectangle
+         delegate:
+             Rectangle
+             {
+-                height: parent.height
++                height: fixtureList.height
+                 width: fxConsole.width + 4
+                 color: UISettings.bgMedium
+ 
+-                Component.onCompleted: sceneEditor.registerFixtureConsole(index, fxConsole)
+-                Component.onDestruction: sceneEditor.unRegisterFixtureConsole(index)
++                Component.onCompleted: if (consoleEditor) consoleEditor.registerFixtureConsole(index, fxConsole)
++                Component.onDestruction: if (consoleEditor) consoleEditor.unRegisterFixtureConsole(index, fxConsole)
+ 
+                 FixtureConsole
+                 {
+diff --git a/qmlui/sceneeditor.cpp b/qmlui/sceneeditor.cpp
+index c4f8c75..c7894fe 100644
+--- a/qmlui/sceneeditor.cpp
++++ b/qmlui/sceneeditor.cpp
+@@ -99,10 +99,11 @@ SceneEditor::~SceneEditor()
+     /** Give the external controllers back to the Virtual Console */
+     setExternalControlEnabled(false);
+ 
+-    m_view->rootContext()->setContextProperty("sceneEditor", nullptr);
+     QQuickItem *bottomPanel = qobject_cast<QQuickItem*>(m_view->rootObject()->findChild<QObject *>("bottomPanelItem"));
+     if (bottomPanel != nullptr)
+         bottomPanel->setProperty("visible", false);
++    // Unload delegates while their backend and registration callbacks exist.
++    m_view->rootContext()->setContextProperty("sceneEditor", nullptr);
+ 
+     delete m_source;
+     delete m_highlightSource;
+@@ -218,10 +219,11 @@ void SceneEditor::registerFixtureConsole(int index, QQuickItem *item)
+ 
+ }
+ 
+-void SceneEditor::unRegisterFixtureConsole(int index)
++void SceneEditor::unRegisterFixtureConsole(int index, QQuickItem *item)
+ {
+-    qDebug() << "[SceneEditor] Fixture console unregistered at index" << index;
+-    m_fxConsoleMap.take(index);
++    // A retired delegate may be destroyed after its replacement is registered.
++    if (m_fxConsoleMap.value(index) == item)
++        m_fxConsoleMap.remove(index);
+ }
+ 
+ bool SceneEditor::hasChannel(quint32 fxID, quint32 channel) const
+@@ -275,9 +277,9 @@ void SceneEditor::slotSceneValueChanged(SceneValue scv)
+ 
+     if (m_sceneConsole)
+     {
+-        if (m_fxConsoleMap.contains(fxIndex))
++        if (m_fxConsoleMap.value(fxIndex))
+         {
+-            QMetaObject::invokeMethod(m_fxConsoleMap[fxIndex], "setChannelValue",
++            QMetaObject::invokeMethod(m_fxConsoleMap.value(fxIndex).data(), "setChannelValue",
+                     Q_ARG(QVariant, scv.channel),
+                     Q_ARG(QVariant, scv.value));
+ 
+@@ -298,8 +300,8 @@ void SceneEditor::slotAliasChanged()
+ 
+     Fixture *fxi = qobject_cast<Fixture *>(sender());
+     int fxIndex = m_fixtureIDs.indexOf(fxi->id());
+-    if (m_fxConsoleMap.contains(fxIndex))
+-        QMetaObject::invokeMethod(m_fxConsoleMap[fxIndex], "updateChannels");
++    if (m_fxConsoleMap.value(fxIndex))
++        QMetaObject::invokeMethod(m_fxConsoleMap.value(fxIndex).data(), "updateChannels");
+ }
+ 
+ void SceneEditor::unsetChannel(quint32 fxID, quint32 channel)
+@@ -324,7 +326,7 @@ void SceneEditor::setFixtureSelection(quint32 fxID)
+             return;
+ 
+     int fxIndex = m_fixtureIDs.indexOf(fxID);
+-    QMetaObject::invokeMethod(m_sceneConsole, "scrollToItem",
++    QMetaObject::invokeMethod(m_sceneConsole.data(), "scrollToItem",
+                               Q_ARG(QVariant, fxIndex));
+ }
+ 
+@@ -517,6 +519,8 @@ void SceneEditor::updateLists()
+         disconnect(fixture, SIGNAL(aliasChanged()), this, SLOT(slotAliasChanged()));
+     }
+ 
++    // Model rows change identity on rebuild, so no old index binding is valid.
++    m_fxConsoleMap.clear();
+     m_fixtureIDs.clear();
+     m_fixtureList->clear();
+     m_componentList->clear();
+diff --git a/qmlui/sceneeditor.h b/qmlui/sceneeditor.h
+index 994d972..2e9a4a9 100644
+--- a/qmlui/sceneeditor.h
++++ b/qmlui/sceneeditor.h
+@@ -21,6 +21,7 @@
+ #define SCENEEDITOR_H
+ 
+ #include "functioneditor.h"
++#include <QPointer>
+ #include "qlcinputsource.h"
+ #include "scenevalue.h"
+ 
+@@ -70,7 +71,7 @@ public:
+     Q_INVOKABLE void sceneConsoleLoaded(bool status);
+ 
+     Q_INVOKABLE void registerFixtureConsole(int index, QQuickItem *item);
+-    Q_INVOKABLE void unRegisterFixtureConsole(int index);
++    Q_INVOKABLE void unRegisterFixtureConsole(int index, QQuickItem *item);
+ 
+     /** QML invokable method that returns if the Scene has the
+      *  requested $fixture's $channel */
+@@ -249,11 +250,11 @@ private:
+     ListModel *m_componentList;
+ 
+     /** A reference to the SceneFixtureConsole when loaded */
+-    QQuickItem *m_sceneConsole;
++    QPointer<QQuickItem> m_sceneConsole;
+ 
+     /** Keep a track of the registered Fixture consoles in a Scene Console,
+      *  to rapidly set a channel value */
+-    QMap<int, QQuickItem *> m_fxConsoleMap;
++    QMap<int, QPointer<QQuickItem>> m_fxConsoleMap;
+ 
+     /** Pre-cache initial channel values including palettes.
+      *  arranged as <fixture ID, channel values array> */
+diff --git a/qmlui/tardis/tardis.h b/qmlui/tardis/tardis.h
+index e91eaab..eeb3bb5 100644
+--- a/qmlui/tardis/tardis.h
++++ b/qmlui/tardis/tardis.h
+@@ -288,6 +288,9 @@ public:
+     /** Get the singleton instance */
+     static Tardis* instance();
+ 
++    /** Whether recorded history or network actions are being replayed */
++    bool isReplaying() const { return m_busy; }
++
+     /** Build a TardisAction with the provided data and enqueue it
+      *  to be processed by the Tardis thread */
+     void enqueueAction(int code, quint32 objID, QVariant oldVal, QVariant newVal);
+diff --git a/qmlui/treemodel.cpp b/qmlui/treemodel.cpp
+index 7590f6f..a913311 100644
+--- a/qmlui/treemodel.cpp
++++ b/qmlui/treemodel.cpp
+@@ -251,6 +251,34 @@ bool TreeModel::removeItem(const QString& path)
+     return true;
+ }
+ 
++bool TreeModel::removeItem(TreeModelItem *item)
++{
++    int index = m_items.indexOf(item);
++    if (index >= 0)
++    {
++        beginRemoveRows(QModelIndex(), index, index);
++        // Only folders are indexed by path. A leaf can share their label.
++        for (auto it = m_itemsPathMap.begin(); it != m_itemsPathMap.end();)
++        {
++            if (it.value() == item)
++                it = m_itemsPathMap.erase(it);
++            else
++                ++it;
++        }
++        m_items.removeAt(index);
++        delete item;
++        endRemoveRows();
++        return true;
++    }
++
++    for (TreeModelItem *child : m_items)
++    {
++        if (child->hasChildren() && child->children()->removeItem(item))
++            return true;
++    }
++    return false;
++}
++
+ void TreeModel::setItemRoleData(QString path, const QVariant &value, int role)
+ {
+     if (path.isEmpty())
+diff --git a/qmlui/treemodel.h b/qmlui/treemodel.h
+index e961b88..31f1790 100644
+--- a/qmlui/treemodel.h
++++ b/qmlui/treemodel.h
+@@ -92,6 +92,9 @@ public:
+     /** Remove an item with the given $path from the tree */
+     bool removeItem(const QString& path);
+ 
++    /** Remove exactly this item, including items in child models. */
++    bool removeItem(TreeModelItem *item);
++
+     /**
+      * Set the value of an item role by item path. This is recursive.
+      *
+diff --git a/qmlui/virtualconsole/vcbutton.cpp b/qmlui/virtualconsole/vcbutton.cpp
+index 63501c4..a3ed896 100644
+--- a/qmlui/virtualconsole/vcbutton.cpp
++++ b/qmlui/virtualconsole/vcbutton.cpp
+@@ -173,6 +173,8 @@ void VCButton::setFunctionID(quint32 fid)
+                 this, SLOT(slotFunctionStopped(quint32)));
+         disconnect(current, SIGNAL(flashing(quint32,bool)),
+                 this, SLOT(slotFunctionFlashing(quint32,bool)));
++        disconnect(current, SIGNAL(nameChanged(uint)),
++                   this, SLOT(slotFunctionNameChanged(uint)));
+ 
+         if (current->isRunning())
+         {
+@@ -192,9 +194,14 @@ void VCButton::setFunctionID(quint32 fid)
+                 this, SLOT(slotFunctionStopped(quint32)));
+         connect(function, SIGNAL(flashing(quint32,bool)),
+                 this, SLOT(slotFunctionFlashing(quint32,bool)));
++        connect(function, SIGNAL(nameChanged(uint)),
++                this, SLOT(slotFunctionNameChanged(uint)));
+ 
+         m_functionID = fid;
+-        if ((isEditing() && caption().isEmpty()) || caption() == defaultCaption())
++        // The attached Function is the source of the button's name, including
++        // when an existing workspace is loaded with an outdated caption.
++        // History replay restores the separately recorded caption instead.
++        if (!Tardis::instance() || !Tardis::instance()->isReplaying())
+             setCaption(function->name());
+ 
+         if (running)
+@@ -208,6 +215,9 @@ void VCButton::setFunctionID(quint32 fid)
+     {
+         /* No function attachment */
+         m_functionID = Function::invalidId();
++        if ((actionType() == Toggle || actionType() == Flash) &&
++            (!Tardis::instance() || !Tardis::instance()->isReplaying()))
++            setCaption(defaultCaption());
+         emit functionIDChanged(-1);
+     }
+ 
+@@ -221,6 +231,21 @@ quint32 VCButton::functionID() const
+     return m_functionID;
+ }
+ 
++void VCButton::slotFunctionNameChanged(quint32 fid)
++{
++    if (fid != m_functionID)
++        return;
++
++    // Caption changes are recorded with the rename. During undo/redo or
++    // network replay, replay those recorded captions instead, so that undo
++    // also restores a caption that was customized before the rename.
++    if (Tardis::instance() && Tardis::instance()->isReplaying())
++        return;
++
++    if (Function *function = m_doc->function(fid))
++        setCaption(function->name());
++}
++
+ void VCButton::adjustFunctionIntensity(Function *f, qreal value)
+ {
+     qreal finalValue = startupIntensityEnabled() ? startupIntensity() * value : value;
+@@ -669,6 +694,9 @@ bool VCButton::loadXML(QXmlStreamReader &root)
+         }
+     }
+ 
++    if (m_functionID == Function::invalidId() &&
++        (actionType() == Toggle || actionType() == Flash))
++        setCaption(defaultCaption());
+     return true;
+ }
+ 
+diff --git a/qmlui/virtualconsole/vcbutton.h b/qmlui/virtualconsole/vcbutton.h
+index 87ac999..9b9971d 100644
+--- a/qmlui/virtualconsole/vcbutton.h
++++ b/qmlui/virtualconsole/vcbutton.h
+@@ -109,6 +109,9 @@ signals:
+     void functionIDChanged(quint32 id);
+ 
+ protected slots:
++    /** Keep the caption in sync when the attached Function is renamed */
++    void slotFunctionNameChanged(quint32 fid);
++
+     /** Handler for function running signal */
+     void slotFunctionRunning(quint32 fid);
+ 
+diff --git a/qmlui/virtualconsole/vcpage.cpp b/qmlui/virtualconsole/vcpage.cpp
+index 753fa22..de3e861 100644
+--- a/qmlui/virtualconsole/vcpage.cpp
++++ b/qmlui/virtualconsole/vcpage.cpp
+@@ -206,7 +206,7 @@ QList<quint32> VCPage::pageInputSources()
+     return list;
+ }
+ 
+-void VCPage::inputValueChanged(quint32 inputSourceKey, uchar value)
++void VCPage::inputValueChanged(quint32 inputSourceKey, uchar value, bool pageChannels)
+ {
+     /** Here is where the magic happens.
+      *  For each input source that matches the given universe/channel,
+@@ -215,7 +215,7 @@ void VCPage::inputValueChanged(quint32 inputSourceKey, uchar value)
+      */
+     for (QPair<QSharedPointer<QLCInputSource>, VCWidget *> match : m_inputSourcesMap.values(inputSourceKey)) // C++11
+     {
+-        bool passVisibility = isEffectivelyVisible(match.second);
++        bool passVisibility = pageChannels || isEffectivelyVisible(match.second);
+ 
+         // make sure input signals always pass to frame widgets
+         bool passDisable = (match.second->type() == VCWidget::FrameWidget) ||
+diff --git a/qmlui/virtualconsole/vcpage.h b/qmlui/virtualconsole/vcpage.h
+index a39a965..09d31be 100644
+--- a/qmlui/virtualconsole/vcpage.h
++++ b/qmlui/virtualconsole/vcpage.h
+@@ -79,7 +79,7 @@ public:
+ 
+     /** Method invoked by the Virtual Console when an input signal is received.
+      *  This is in charge of delivering the event to the children widgets expecting it. */
+-    void inputValueChanged(quint32 inputSourceKey, uchar value);
++    void inputValueChanged(quint32 inputSourceKey, uchar value, bool pageChannels = false);
+ 
+ private:
+     /** This variable represents the map of all the external controllers
+diff --git a/qmlui/virtualconsole/virtualconsole.cpp b/qmlui/virtualconsole/virtualconsole.cpp
+index 784a65f..76836f6 100644
+--- a/qmlui/virtualconsole/virtualconsole.cpp
++++ b/qmlui/virtualconsole/virtualconsole.cpp
+@@ -1372,10 +1372,10 @@ void VirtualConsole::slotInputValueChanged(quint32 universe, quint32 channel, uc
+         {
+             VCPage *page = m_pages.at(pageIndex);
+ 
+-            if (pageIndex == selectedPage())
++            if (m_midiPageChannels || pageIndex == selectedPage())
+             {
+-                page->inputValueChanged(inputSourceKey, value);
+-                break;
++                page->inputValueChanged(inputSourceKey, value, m_midiPageChannels);
++                if (!m_midiPageChannels) break;
+             }
+         }
+     }
+@@ -1545,6 +1545,8 @@ bool VirtualConsole::loadXML(QXmlStreamReader &root)
+ 
+     m_loadStatus = Loading;
+ 
++    m_midiPageChannels = root.attributes().value("MIDIPageChannels") == "True";
++
+     while (root.readNextStartElement())
+     {
+         //qDebug() << "VC tag:" << root.name();
+@@ -1719,6 +1721,7 @@ bool VirtualConsole::saveXML(QXmlStreamWriter *doc) const
+ 
+     /* Virtual Console entry */
+     doc->writeStartElement(KXMLQLCVirtualConsole);
++    if (m_midiPageChannels) doc->writeAttribute("MIDIPageChannels", "True");
+ 
+     /* Contents */
+     for (int i = 0; i < m_pages.count(); i++)
+diff --git a/qmlui/virtualconsole/virtualconsole.h b/qmlui/virtualconsole/virtualconsole.h
+index baf717a..99a0f81 100644
+--- a/qmlui/virtualconsole/virtualconsole.h
++++ b/qmlui/virtualconsole/virtualconsole.h
+@@ -329,6 +329,7 @@ protected:
+      *  handled. It is lowered when another context takes over the
+      *  controller surface. @see enableExternalInput */
+     bool m_externalInputEnabled;
++    bool m_midiPageChannels = false;
+ 
+     /** Temporary reference to a VC widget which is in the process
+      *  of auto detecting an input source */
+diff --git a/webaccess/src/webaccess-qml.cpp b/webaccess/src/webaccess-qml.cpp
+index 7269d5c..657623e 100644
+--- a/webaccess/src/webaccess-qml.cpp
++++ b/webaccess/src/webaccess-qml.cpp
+@@ -51,6 +51,7 @@
+ #include "function.h"
+ #include "chaser.h"
+ #include "doc.h"
++#include "genericfader.h"
+ #include "fixture.h"
+ #include "qlcchannel.h"
+ #include "qlccapability.h"
+@@ -431,6 +432,10 @@ WebAccessQml::WebAccessQml(Doc *doc, VirtualConsole *vcInstance, SimpleDesk *sdI
+ 
+ WebAccessQml::~WebAccessQml()
+ {
++    if (m_sceneColorOwner) GenericFader::setSceneColorOverride(-1);
++    if (m_brightnessOwner) GenericFader::setBrightnessOverride(-1);
++    if (m_rgbBrightnessOwner) GenericFader::setRGBBrightnessOverride(-1);
++    if (m_fadeOverrideOwner) Function::setGlobalFadeOverride(-1, -1);
+ }
+ 
+ void WebAccessQml::slotHandleHTTPRequest(QHttpRequest *req, QHttpResponse *resp)
+@@ -710,6 +715,54 @@ void WebAccessQml::slotHandleWebSocketRequest(QHttpConnection *conn, QString dat
+                 }
+             }
+         }
++        else if (apiCmd == "setSceneColorOverride")
++        {
++            if (m_auth && user && user->level < SIMPLE_DESK_AND_VC_LEVEL) return;
++            if (cmdList.count() != 6) return;
++            bool ok[4];
++            const int enabled = cmdList[2].toInt(&ok[0]);
++            const int r = cmdList[3].toInt(&ok[1]), g = cmdList[4].toInt(&ok[2]), b = cmdList[5].toInt(&ok[3]);
++            if (!ok[0] || !ok[1] || !ok[2] || !ok[3] || enabled < 0 || enabled > 1 ||
++                r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) return;
++            GenericFader::setSceneColorOverride(enabled ? qRgb(r, g, b) & 0x00ffffff : -1);
++            m_sceneColorOwner = enabled ? conn : nullptr;
++            wsAPIMessage = "QLC+API|setSceneColorOverride|OK";
++        }
++        else if (apiCmd == "setRGBBrightnessOverride")
++        {
++            if (m_auth && user && user->level < SIMPLE_DESK_AND_VC_LEVEL) return;
++            if (cmdList.count() != 4) return;
++            bool ok[2];
++            const int enabled = cmdList[2].toInt(&ok[0]), percent = cmdList[3].toInt(&ok[1]);
++            if (!ok[0] || !ok[1] || enabled < 0 || enabled > 1 || percent < 0 || percent > 100) return;
++            GenericFader::setRGBBrightnessOverride(enabled ? percent : -1);
++            m_rgbBrightnessOwner = enabled ? conn : nullptr;
++            wsAPIMessage = "QLC+API|setRGBBrightnessOverride|OK";
++        }
++        else if (apiCmd == "setBrightnessOverride")
++        {
++            if (m_auth && user && user->level < SIMPLE_DESK_AND_VC_LEVEL) return;
++            if (cmdList.count() != 4) return;
++            bool ok[2];
++            const int enabled = cmdList[2].toInt(&ok[0]), percent = cmdList[3].toInt(&ok[1]);
++            if (!ok[0] || !ok[1] || enabled < 0 || enabled > 1 || percent < 0 || percent > 100) return;
++            GenericFader::setBrightnessOverride(enabled ? percent : -1);
++            m_brightnessOwner = enabled ? conn : nullptr;
++            wsAPIMessage = "QLC+API|setBrightnessOverride|OK";
++        }
++        else if (apiCmd == "setFadeOverride")
++        {
++            if (m_auth && user && user->level < SIMPLE_DESK_AND_VC_LEVEL) return;
++            if (cmdList.count() != 5) return;
++            bool ok[3];
++            const int enabled = cmdList[2].toInt(&ok[0]);
++            const int fadeIn = cmdList[3].toInt(&ok[1]), fadeOut = cmdList[4].toInt(&ok[2]);
++            if (!ok[0] || !ok[1] || !ok[2] || enabled < 0 || enabled > 1 ||
++                fadeIn < 0 || fadeIn > 1000 || fadeOut < 0 || fadeOut > 1000) return;
++            Function::setGlobalFadeOverride(enabled ? fadeIn : -1, enabled ? fadeOut : -1);
++            m_fadeOverrideOwner = enabled ? conn : nullptr;
++            wsAPIMessage = "QLC+API|setFadeOverride|OK";
++        }
+         else if (apiCmd == "getChannelsValues")
+         {
+             if (m_auth && user && user->level < SIMPLE_DESK_AND_VC_LEVEL)
+@@ -1031,6 +1084,22 @@ void WebAccessQml::slotHandleWebSocketRequest(QHttpConnection *conn, QString dat
+ 
+ void WebAccessQml::slotHandleWebSocketClose(QHttpConnection *conn)
+ {
++    if (m_rgbBrightnessOwner == conn) {
++        GenericFader::setRGBBrightnessOverride(-1);
++        m_rgbBrightnessOwner = nullptr;
++    }
++    if (m_brightnessOwner == conn) {
++        GenericFader::setBrightnessOverride(-1);
++        m_brightnessOwner = nullptr;
++    }
++    if (m_fadeOverrideOwner == conn) {
++        Function::setGlobalFadeOverride(-1, -1);
++        m_fadeOverrideOwner = nullptr;
++    }
++    if (m_sceneColorOwner == conn) {
++        GenericFader::setSceneColorOverride(-1);
++        m_sceneColorOwner = nullptr;
++    }
+     qDebug() << "Websocket Connection closed";
+     if (conn->userData)
+     {
+@@ -1057,7 +1126,15 @@ void WebAccessQml::slotFunctionStopped(quint32 fid)
+ 
+ void WebAccessQml::slotDocLoaded()
+ {
++    Function::setGlobalFadeOverride(-1, -1);
++    m_fadeOverrideOwner = nullptr;
++    GenericFader::setSceneColorOverride(-1);
++    m_sceneColorOwner = nullptr;
++    GenericFader::setBrightnessOverride(-1);
++    m_brightnessOwner = nullptr;
+     m_pendingProjectLoaded = true;
++    GenericFader::setRGBBrightnessOverride(-1);
++    m_rgbBrightnessOwner = nullptr;
+     m_connectedWidgets.clear();
+ }
+ 
+diff --git a/webaccess/src/webaccess-qml.h b/webaccess/src/webaccess-qml.h
+index 08b3f91..cdd2d7a 100644
+--- a/webaccess/src/webaccess-qml.h
++++ b/webaccess/src/webaccess-qml.h
+@@ -114,6 +114,10 @@ protected:
+ 
+ protected:
+     QSet<quint32> m_connectedWidgets;
++    QHttpConnection *m_sceneColorOwner = nullptr;
++    QHttpConnection *m_brightnessOwner = nullptr;
++    QHttpConnection *m_rgbBrightnessOwner = nullptr;
++    QHttpConnection *m_fadeOverrideOwner = nullptr;
+ };
+ 
+ #endif // WEBACCESS_QML_H

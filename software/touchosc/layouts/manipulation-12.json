@@ -1,0 +1,453 @@
+{
+  "title": "雄飛祭2026",
+  "size": [
+    744,
+    1133
+  ],
+  "midi_enabled": false,
+  "performances": [
+    {
+      "id": "act01",
+      "title": "演目01",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT01_SONG01",
+          "channel": 16,
+          "note": 0
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT01_SONG02",
+          "channel": 16,
+          "note": 1
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT01_SONG03",
+          "channel": 16,
+          "note": 2
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT01_SONG04",
+          "channel": 16,
+          "note": 3
+        }
+      ]
+    },
+    {
+      "id": "act02",
+      "title": "演目02",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT02_SONG01",
+          "channel": 16,
+          "note": 4
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT02_SONG02",
+          "channel": 16,
+          "note": 5
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT02_SONG03",
+          "channel": 16,
+          "note": 6
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT02_SONG04",
+          "channel": 16,
+          "note": 7
+        }
+      ]
+    },
+    {
+      "id": "act03",
+      "title": "演目03",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT03_SONG01",
+          "channel": 16,
+          "note": 8
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT03_SONG02",
+          "channel": 16,
+          "note": 9
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT03_SONG03",
+          "channel": 16,
+          "note": 10
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT03_SONG04",
+          "channel": 16,
+          "note": 11
+        }
+      ]
+    },
+    {
+      "id": "act04",
+      "title": "演目04",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT04_SONG01",
+          "channel": 16,
+          "note": 12
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT04_SONG02",
+          "channel": 16,
+          "note": 13
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT04_SONG03",
+          "channel": 16,
+          "note": 14
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT04_SONG04",
+          "channel": 16,
+          "note": 15
+        }
+      ]
+    },
+    {
+      "id": "act05",
+      "title": "演目05",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT05_SONG01",
+          "channel": 16,
+          "note": 16
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT05_SONG02",
+          "channel": 16,
+          "note": 17
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT05_SONG03",
+          "channel": 16,
+          "note": 18
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT05_SONG04",
+          "channel": 16,
+          "note": 19
+        }
+      ]
+    },
+    {
+      "id": "act06",
+      "title": "演目06",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT06_SONG01",
+          "channel": 16,
+          "note": 20
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT06_SONG02",
+          "channel": 16,
+          "note": 21
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT06_SONG03",
+          "channel": 16,
+          "note": 22
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT06_SONG04",
+          "channel": 16,
+          "note": 23
+        }
+      ]
+    },
+    {
+      "id": "act07",
+      "title": "演目07",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT07_SONG01",
+          "channel": 16,
+          "note": 24
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT07_SONG02",
+          "channel": 16,
+          "note": 25
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT07_SONG03",
+          "channel": 16,
+          "note": 26
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT07_SONG04",
+          "channel": 16,
+          "note": 27
+        }
+      ]
+    },
+    {
+      "id": "act08",
+      "title": "演目08",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT08_SONG01",
+          "channel": 16,
+          "note": 28
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT08_SONG02",
+          "channel": 16,
+          "note": 29
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT08_SONG03",
+          "channel": 16,
+          "note": 30
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT08_SONG04",
+          "channel": 16,
+          "note": 31
+        }
+      ]
+    },
+    {
+      "id": "act09",
+      "title": "演目09",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT09_SONG01",
+          "channel": 16,
+          "note": 32
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT09_SONG02",
+          "channel": 16,
+          "note": 33
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT09_SONG03",
+          "channel": 16,
+          "note": 34
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT09_SONG04",
+          "channel": 16,
+          "note": 35
+        }
+      ]
+    },
+    {
+      "id": "act10",
+      "title": "演目10",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT10_SONG01",
+          "channel": 16,
+          "note": 36
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT10_SONG02",
+          "channel": 16,
+          "note": 37
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT10_SONG03",
+          "channel": 16,
+          "note": 38
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT10_SONG04",
+          "channel": 16,
+          "note": 39
+        }
+      ]
+    },
+    {
+      "id": "act11",
+      "title": "演目11",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT11_SONG01",
+          "channel": 16,
+          "note": 40
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT11_SONG02",
+          "channel": 16,
+          "note": 41
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT11_SONG03",
+          "channel": 16,
+          "note": 42
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT11_SONG04",
+          "channel": 16,
+          "note": 43
+        }
+      ]
+    },
+    {
+      "id": "act12",
+      "title": "演目12",
+      "songs": [
+        {
+          "id": "song01",
+          "title": "曲01",
+          "locator": "ACT12_SONG01",
+          "channel": 16,
+          "note": 44
+        },
+        {
+          "id": "song02",
+          "title": "曲02",
+          "locator": "ACT12_SONG02",
+          "channel": 16,
+          "note": 45
+        },
+        {
+          "id": "song03",
+          "title": "曲03",
+          "locator": "ACT12_SONG03",
+          "channel": 16,
+          "note": 46
+        },
+        {
+          "id": "song04",
+          "title": "曲04",
+          "locator": "ACT12_SONG04",
+          "channel": 16,
+          "note": 47
+        }
+      ]
+    }
+  ],
+  "resume": {
+    "channel": 16,
+    "cc": 119,
+    "connection": 1,
+    "action": "SETCONT"
+  },
+  "qlc_stop": {
+    "channel": 1,
+    "note": 111,
+    "connection": 2,
+    "vc_button_id": 3,
+    "action": "StopAll"
+  },
+  "live_stop": {
+    "channel": 16,
+    "cc": 118,
+    "connection": 1,
+    "action": "Live Stop"
+  },
+  "metronome": {
+    "channel": 16,
+    "on_cc": 117,
+    "off_cc": 116,
+    "connection": 1
+  },
+  "qlc_border": {
+    "channel": 1,
+    "cc": 117,
+    "connection": 2,
+    "function_id": 10,
+    "fixture_id": 0,
+    "dmx_channel": 1,
+    "action": "Flash",
+    "receiver_configured": false
+  }
+}

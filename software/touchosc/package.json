@@ -1,0 +1,11 @@
+{
+  "name": "stage-touchosc-control",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start:qlc": "node stage-qlc.cjs"
+  },
+  "dependencies": {
+    "ws": "8.22.0"
+  }
+}

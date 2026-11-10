@@ -1,0 +1,62 @@
+[
+  {
+    "id": "c2",
+    "title": "C'2",
+    "live": "project-files/C2 Project/C2-measure-aligned-v4.als",
+    "qlc": "project-files/C2 Project/C2-lighting-v4.qxw",
+    "numbered_end_prefix": "C2_"
+  },
+  {
+    "id": "rumy",
+    "title": "RUMY",
+    "live": "project-files/rumy/RUMY Project/RUMY.als",
+    "qlc": "project-files/rumy/261023-rumy.qxw"
+  },
+  {
+    "id": "dfs-day1",
+    "title": "DFS",
+    "live": "project-files/Dance_Free_Style Project/小講堂1日目.als",
+    "qlc": "project-files/261009-ableton-hold-midi.qxw"
+  },
+  {
+    "id": "unified",
+    "title": "Unified",
+    "live": "project-files/integrated/Yuhisai-2026-integrated.als",
+    "qlc": "project-files/integrated/Yuhisai-2026-integrated.qxw"
+  },
+  {
+    "id": "unified-c2",
+    "title": "C'2",
+    "live": "project-files/integrated/Yuhisai-2026-C2-1108.als",
+    "qlc": "project-files/integrated/Yuhisai-2026-integrated.qxw",
+    "locator_group": "C2"
+  },
+  {
+    "id": "unified-dfs-day1",
+    "title": "DFS 1日目",
+    "live": "project-files/integrated/Yuhisai-2026-integrated.als",
+    "qlc": "project-files/integrated/Yuhisai-2026-integrated.qxw",
+    "locator_group": "DFS"
+  },
+  {
+    "id": "unified-dfs-day2",
+    "title": "DFS 2日目",
+    "live": "project-files/integrated/Yuhisai-2026-C2-1108.als",
+    "qlc": "project-files/integrated/Yuhisai-2026-integrated.qxw",
+    "locator_group": "DFS",
+    "default_order": [
+      "[DFS_OP]",
+      "[DFS_1new]",
+      "[DFS_CLAPUNITY]",
+      "[DFS_1ja]",
+      "[DFS_haruka]",
+      "[DFS_2JA]",
+      "[DFS_2NEW]",
+      "[DFS_MoNaChi]",
+      "[DFS_LOCK]",
+      "[DFS_3NEW]",
+      "[DFS_3ja]",
+      "[DFS_POP]"
+    ]
+  }
+]

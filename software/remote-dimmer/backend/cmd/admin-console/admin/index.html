@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#354a5f"><title>照明リモート · 管理コンソール</title>
+<link rel="stylesheet" href="/vendor/css_variables.css"><link rel="stylesheet" href="/vendor/sap_horizon.css">
+<link rel="stylesheet" href="/vendor/button.css"><link rel="stylesheet" href="/vendor/input.css"><link rel="stylesheet" href="/vendor/table.css">
+<link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">本文へ移動</a>
+<header class="shell"><div class="shell-inner"><div class="app-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4h6l3 9H6l3-9Zm0 12-2 5m8-5 2 5M3 16l-2 2m20-2 2 2M12 17v5"/></svg></div><strong>照明リモート</strong><span class="shell-label">管理コンソール</span><span class="local-label">このMac専用</span></div></header>
+<main id="main">
+ <div class="page-heading"><div><p class="eyebrow">YUHISAI 2026</p><h1>接続と割り当て</h1></div><div class="heading-actions"><span id="updated">接続を確認中</span><button class="fd-button" id="refresh" type="button">更新</button></div></div>
+ <div class="connection-strip" id="connection-strip" role="status"><span class="dot" aria-hidden="true"></span><strong id="server-label">照明サーバーを確認中</strong><span id="qlc-label">QLC+ 確認中</span></div>
+ <div class="safety-note" id="safety-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3v1"/></svg><span id="safety-text">Abletonを使う前に照明サーバーを停止してください。</span></div>
+ <div class="error" id="error" role="alert" hidden></div>
+ <div class="workspace">
+  <section class="join-panel" aria-labelledby="join-title">
+   <div class="section-head"><h2 id="join-title">iPhoneを接続</h2><span class="section-step">01</span></div>
+   <button class="qr-button" id="enlarge-qr" aria-label="接続用QRコードを拡大"><img src="/join-qr.svg" width="232" height="232" alt="照明リモートを開くQRコード"></button>
+   <p class="join-caption">Safariで読み取る</p>
+   <a class="join-url" href="https://knudg.com/yuhisai/2026/dimmer/" target="_blank" rel="noopener">knudg.com/yuhisai/2026/dimmer/</a>
+   <div class="join-actions"><button class="fd-button fd-button--emphasized" id="copy-link">リンクをコピー</button><button class="fd-button fd-button--transparent" id="show-qr">QRを拡大</button></div>
+   <ol class="join-steps"><li>iPhoneでリンクを開く</li><li>表示された端末IDを確認</li><li>右の一覧で灯体を割り当てる</li></ol>
+   <p class="join-footnote">Web版は1台につき1灯体</p>
+  </section>
+  <div class="management">
+   <section class="panel" aria-labelledby="devices-title">
+    <div class="section-head"><div class="section-title"><h2 id="devices-title">端末</h2><span class="count" id="device-count">—</span></div><label class="search"><span class="sr-only">端末IDを検索</span><input class="fd-input" id="device-search" type="search" placeholder="端末IDを検索" autocomplete="off"></label></div>
+    <div id="devices" class="device-list"><p class="empty">接続を確認中</p></div>
+   </section>
+   <section class="panel fixture-panel" aria-labelledby="fixtures-title">
+    <div class="section-head"><div class="section-title"><h2 id="fixtures-title">灯体</h2><span class="count" id="fixture-count">—</span></div><div class="filter" role="group" aria-label="灯体の絞り込み"><button class="filter-button selected" data-filter="all" aria-pressed="true">すべて</button><button class="filter-button" data-filter="unassigned" aria-pressed="false">未割り当て</button></div></div>
+    <div class="table-scroll"><table class="fd-table"><thead class="fd-table__header"><tr class="fd-table__row"><th class="fd-table__cell" scope="col">灯体</th><th class="fd-table__cell" scope="col">明るさ</th><th class="fd-table__cell" scope="col">端末ID</th><th class="fd-table__cell" scope="col">状態</th><th class="fd-table__cell" scope="col">最終変更</th></tr></thead><tbody class="fd-table__body" id="fixtures"></tbody></table></div><p class="empty" id="fixtures-empty" hidden>該当する灯体はありません</p>
+   </section>
+   <section class="warnings" id="warnings-panel" hidden><h2>確認が必要です</h2><ul id="warnings"></ul></section>
+  </div>
+ </div>
+ <footer>照明リモート <span>管理コンソール</span><a href="http://127.0.0.1:8765/status" target="_blank" rel="noopener">従来の状態画面</a></footer>
+</main>
+<dialog id="qr-dialog" aria-labelledby="qr-dialog-title"><div class="dialog-head"><h2 id="qr-dialog-title">iPhoneで読み取る</h2><button class="fd-button fd-button--transparent" id="close-qr" aria-label="閉じる">閉じる</button></div><img src="/join-qr.svg" alt="照明リモートを開くQRコード" width="480" height="480"><p>knudg.com/yuhisai/2026/dimmer/</p></dialog>
+<dialog id="forget-dialog" aria-labelledby="forget-title"><h2 id="forget-title">端末の登録を削除</h2><p><strong id="forget-device"></strong>の認証情報と灯体の割り当てを削除します。割り当てられていた全灯体が0になります。</p><div class="dialog-actions"><button class="fd-button" id="cancel-forget">戻る</button><button class="fd-button fd-button--negative" id="confirm-forget">登録を削除</button></div></dialog>
+<div id="toast" role="status" hidden></div>
+</body></html>

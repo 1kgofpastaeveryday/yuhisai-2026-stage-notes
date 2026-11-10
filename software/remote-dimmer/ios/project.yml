@@ -1,0 +1,90 @@
+name: DimmerRemote
+options:
+  minimumXcodeGenVersion: 2.44.0
+  deploymentTarget:
+    # 17.0 (owner 2026-10-29): operators' phones on iOS 17 can install without updating.
+    # The SDK is unchanged, so iOS 18+ phones run the same code paths as before.
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    DEVELOPMENT_TEAM: <REDACTED>
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 5
+    ENABLE_USER_SCRIPT_SANDBOXING: true
+targets:
+  DimmerRemote:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    configFiles:
+      Debug: Config/Venue.xcconfig
+      Release: Config/Venue.xcconfig
+    entitlements:
+      path: Sources/DimmerRemote.entitlements
+      properties:
+        com.apple.developer.networking.HotspotConfiguration: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: <REDACTED>
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: false
+    info:
+      path: Sources/Info.plist
+      properties:
+        DimmerServerURL: wss://<HOST>/ws
+        VenueWiFiSSID: $(VENUE_WIFI_SSID)
+        VenueWiFiPassphrase: $(VENUE_WIFI_PASSPHRASE)
+        CFBundleDisplayName: 照明リモート
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSLocalNetworkUsageDescription: 会場の照明サーバーにつなぎ、割り当てられた照明を操作するために使います。
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+  DimmerRemoteTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: DimmerRemote
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: <REDACTED>
+        GENERATE_INFOPLIST_FILE: true
+  DimmerRemoteUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: DimmerRemote
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: <REDACTED>
+        GENERATE_INFOPLIST_FILE: true
+schemes:
+  DimmerRemote:
+    build:
+      targets:
+        DimmerRemote: all
+        DimmerRemoteUITests: [test]
+        DimmerRemoteTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - DimmerRemoteUITests
+        - DimmerRemoteTests
+      environmentVariables:
+        DIMMER_LIVE_TEST: "$(DIMMER_LIVE_TEST)"

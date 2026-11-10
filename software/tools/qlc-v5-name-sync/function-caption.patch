@@ -1,0 +1,99 @@
+diff --git a/qmlui/tardis/tardis.h b/qmlui/tardis/tardis.h
+index e91eaab..eeb3bb5 100644
+--- a/qmlui/tardis/tardis.h
++++ b/qmlui/tardis/tardis.h
+@@ -288,6 +288,9 @@ public:
+     /** Get the singleton instance */
+     static Tardis* instance();
+ 
++    /** Whether recorded history or network actions are being replayed */
++    bool isReplaying() const { return m_busy; }
++
+     /** Build a TardisAction with the provided data and enqueue it
+      *  to be processed by the Tardis thread */
+     void enqueueAction(int code, quint32 objID, QVariant oldVal, QVariant newVal);
+diff --git a/qmlui/virtualconsole/vcbutton.cpp b/qmlui/virtualconsole/vcbutton.cpp
+index 63501c4..a3ed896 100644
+--- a/qmlui/virtualconsole/vcbutton.cpp
++++ b/qmlui/virtualconsole/vcbutton.cpp
+@@ -173,6 +173,8 @@ void VCButton::setFunctionID(quint32 fid)
+                 this, SLOT(slotFunctionStopped(quint32)));
+         disconnect(current, SIGNAL(flashing(quint32,bool)),
+                 this, SLOT(slotFunctionFlashing(quint32,bool)));
++        disconnect(current, SIGNAL(nameChanged(uint)),
++                   this, SLOT(slotFunctionNameChanged(uint)));
+ 
+         if (current->isRunning())
+         {
+@@ -192,9 +194,14 @@ void VCButton::setFunctionID(quint32 fid)
+                 this, SLOT(slotFunctionStopped(quint32)));
+         connect(function, SIGNAL(flashing(quint32,bool)),
+                 this, SLOT(slotFunctionFlashing(quint32,bool)));
++        connect(function, SIGNAL(nameChanged(uint)),
++                this, SLOT(slotFunctionNameChanged(uint)));
+ 
+         m_functionID = fid;
+-        if ((isEditing() && caption().isEmpty()) || caption() == defaultCaption())
++        // The attached Function is the source of the button's name, including
++        // when an existing workspace is loaded with an outdated caption.
++        // History replay restores the separately recorded caption instead.
++        if (!Tardis::instance() || !Tardis::instance()->isReplaying())
+             setCaption(function->name());
+ 
+         if (running)
+@@ -208,6 +215,9 @@ void VCButton::setFunctionID(quint32 fid)
+     {
+         /* No function attachment */
+         m_functionID = Function::invalidId();
++        if ((actionType() == Toggle || actionType() == Flash) &&
++            (!Tardis::instance() || !Tardis::instance()->isReplaying()))
++            setCaption(defaultCaption());
+         emit functionIDChanged(-1);
+     }
+ 
+@@ -221,6 +231,21 @@ quint32 VCButton::functionID() const
+     return m_functionID;
+ }
+ 
++void VCButton::slotFunctionNameChanged(quint32 fid)
++{
++    if (fid != m_functionID)
++        return;
++
++    // Caption changes are recorded with the rename. During undo/redo or
++    // network replay, replay those recorded captions instead, so that undo
++    // also restores a caption that was customized before the rename.
++    if (Tardis::instance() && Tardis::instance()->isReplaying())
++        return;
++
++    if (Function *function = m_doc->function(fid))
++        setCaption(function->name());
++}
++
+ void VCButton::adjustFunctionIntensity(Function *f, qreal value)
+ {
+     qreal finalValue = startupIntensityEnabled() ? startupIntensity() * value : value;
+@@ -669,6 +694,9 @@ bool VCButton::loadXML(QXmlStreamReader &root)
+         }
+     }
+ 
++    if (m_functionID == Function::invalidId() &&
++        (actionType() == Toggle || actionType() == Flash))
++        setCaption(defaultCaption());
+     return true;
+ }
+ 
+diff --git a/qmlui/virtualconsole/vcbutton.h b/qmlui/virtualconsole/vcbutton.h
+index 87ac999..9b9971d 100644
+--- a/qmlui/virtualconsole/vcbutton.h
++++ b/qmlui/virtualconsole/vcbutton.h
+@@ -109,6 +109,9 @@ signals:
+     void functionIDChanged(quint32 id);
+ 
+ protected slots:
++    /** Keep the caption in sync when the attached Function is renamed */
++    void slotFunctionNameChanged(quint32 fid);
++
+     /** Handler for function running signal */
+     void slotFunctionRunning(quint32 fid);
+ 

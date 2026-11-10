@@ -1,0 +1,488 @@
+diff --git a/engine/src/function.cpp b/engine/src/function.cpp
+index 3871157..1f25651 100644
+--- a/engine/src/function.cpp
++++ b/engine/src/function.cpp
+@@ -24,6 +24,7 @@
+ #include <QString>
+ #include <QDebug>
+ #include <math.h>
++#include <atomic>
+ 
+ #include "qlcmacros.h"
+ #include "qlcfile.h"
+@@ -679,6 +680,29 @@ void Function::setOverrideFadeInSpeed(uint ms)
+     m_overrideFadeInSpeed = ms;
+ }
+ 
++namespace { std::atomic<quint32> globalFadeTimes{0xffffffffu}; }
++
++void Function::setGlobalFadeOverride(int fadeInMs, int fadeOutMs)
++{
++    if (fadeInMs < -1 || fadeInMs > 1000 || fadeOutMs < -1 || fadeOutMs > 1000)
++        return;
++    const quint32 in = fadeInMs < 0 ? 0xffffu : quint32(fadeInMs);
++    const quint32 out = fadeOutMs < 0 ? 0xffffu : quint32(fadeOutMs);
++    globalFadeTimes.store((in << 16) | out);
++}
++
++int Function::globalFadeInOverride()
++{
++    const quint32 value = globalFadeTimes.load() >> 16;
++    return value == 0xffffu ? -1 : int(value);
++}
++
++int Function::globalFadeOutOverride()
++{
++    const quint32 value = globalFadeTimes.load() & 0xffffu;
++    return value == 0xffffu ? -1 : int(value);
++}
++
+ uint Function::overrideFadeInSpeed() const
+ {
+     return m_overrideFadeInSpeed;
+diff --git a/engine/src/function.h b/engine/src/function.h
+index 38361f1..6ede9bd 100644
+--- a/engine/src/function.h
++++ b/engine/src/function.h
+@@ -519,6 +519,13 @@ public:
+     /** Get the override fade in speed */
+     uint overrideFadeInSpeed() const;
+ 
++    /** Runtime fade override in milliseconds; -1 restores Function settings.
++     * Scene (including Flash) and RGBMatrix consume these values at transitions.
++     * Never changes the speeds stored in the workspace. */
++    static void setGlobalFadeOverride(int fadeInMs, int fadeOutMs);
++    static int globalFadeInOverride();
++    static int globalFadeOutOverride();
++
+     /** Set the override fade out speed (done by chaser in Common speed mode) */
+     void setOverrideFadeOutSpeed(uint ms);
+ 
+diff --git a/engine/src/genericfader.cpp b/engine/src/genericfader.cpp
+index 940b7b2..f88177c 100644
+--- a/engine/src/genericfader.cpp
++++ b/engine/src/genericfader.cpp
+@@ -18,10 +18,19 @@
+ */
+ 
+ #include <QDebug>
++#include <atomic>
++#include <utility>
+ 
+ #include "genericfader.h"
+ #include "fadechannel.h"
+ #include "doc.h"
++#include "fixture.h"
++
++namespace { std::atomic<int> sceneColorRGB{-1}; std::atomic<int> brightnessPercent{-1}; }
++void GenericFader::setSceneColorOverride(int rgb) { sceneColorRGB.store(rgb); }
++int GenericFader::sceneColorOverride() { return sceneColorRGB.load(); }
++void GenericFader::setBrightnessOverride(int percent) { if (percent >= -1 && percent <= 100) brightnessPercent.store(percent); }
++int GenericFader::brightnessOverride() { return brightnessPercent.load(); }
+ 
+ GenericFader::GenericFader(QObject *parent)
+     : QObject(parent)
+@@ -234,6 +243,53 @@ void GenericFader::write(Universe *universe, uint elapsedMs)
+     // iterate through all the channels handled by this fader
+     QWriteLocker l(&m_channelsLock);
+     QMutableHashIterator <quint32,FadeChannel> it(m_channels);
++    const int overrideRGB = m_colorDoc ? sceneColorOverride() : -1;
++    const int brightness = m_colorDoc ? brightnessOverride() : -1;
++    struct RGBOutput { quint32 address[3]; quint32 values[3] = {}; quint32 peak = 0; quint32 level = 0; bool flashing = false; bool forceLTP = false; };
++    QHash<quint32, RGBOutput> rgbOutputs;
++    QHash<quint32, quint32> rgbChannels;
++    // Remember the native nonzero target through releases, including a release
++    // during fade-in. Normalizing to the partial release start would cause a jump.
++    if (m_colorDoc)
++    {
++        QHash<quint32, quint32> targets;
++        for (const FadeChannel &fc : std::as_const(m_channels))
++        {
++            Fixture *fixture = m_colorDoc->fixture(fc.fixture());
++            if (!fixture || fc.channelCount() != 1 || !fixture->channel(fc.channel())) continue;
++            const auto *channel = fixture->channel(fc.channel());
++            if (fc.target() && channel->group() == QLCChannel::Intensity)
++                m_brightnessDimmerPeaks[channelHash(fc.fixture(), fc.channel())] = fc.target();
++            if (channel->colour() == QLCChannel::Red || channel->colour() == QLCChannel::Green || channel->colour() == QLCChannel::Blue)
++                targets[fc.fixture()] = qMax(targets.value(fc.fixture()), fc.target());
++        }
++        for (auto target = targets.constBegin(); target != targets.constEnd(); ++target)
++            if (target.value()) m_brightnessRGBPeaks[target.key()] = target.value();
++    }
++    if (overrideRGB >= 0 || brightness >= 0)
++    {
++        for (const FadeChannel &fc : std::as_const(m_channels))
++        {
++            Fixture *fixture = m_colorDoc->fixture(fc.fixture());
++            if (!fixture || fc.channelCount() != 1 || fixture->heads() != 1) continue;
++            const quint32 channels[] = {
++                fixture->channelNumber(QLCChannel::Red, QLCChannel::MSB),
++                fixture->channelNumber(QLCChannel::Green, QLCChannel::MSB),
++                fixture->channelNumber(QLCChannel::Blue, QLCChannel::MSB)};
++            if (channels[0] == QLCChannel::invalid() || channels[1] == QLCChannel::invalid() || channels[2] == QLCChannel::invalid()) continue;
++            if (fixture->channelNumber(QLCChannel::Red, QLCChannel::LSB) != QLCChannel::invalid() ||
++                fixture->channelNumber(QLCChannel::Green, QLCChannel::LSB) != QLCChannel::invalid() ||
++                fixture->channelNumber(QLCChannel::Blue, QLCChannel::LSB) != QLCChannel::invalid()) continue;
++            if (fc.channel() != channels[0] && fc.channel() != channels[1] && fc.channel() != channels[2]) continue;
++            const quint32 base = fixture->universeAddress();
++            if ((base + channels[0]) / 512 != universe->id() || (base + channels[1]) / 512 != universe->id() ||
++                (base + channels[2]) / 512 != universe->id()) continue;
++            RGBOutput output;
++            for (int i = 0; i < 3; ++i) output.address[i] = (base + channels[i]) % 512;
++            if (!rgbOutputs.contains(fc.fixture())) rgbOutputs.insert(fc.fixture(), output);
++            rgbChannels.insert(channelHash(fc.fixture(), fc.channel()), fc.fixture());
++        }
++    }
+     while (it.hasNext() == true)
+     {
+         FadeChannel& fc(it.next().value());
+@@ -278,29 +334,50 @@ void GenericFader::write(Universe *universe, uint elapsedMs)
+             }
+         }
+ 
+-        //qDebug() << "[GenericFader] >>> uni:" << universe->id() << ", address:" << address << ", value:" << value << "int:" << compIntensity;
+-        if (flags & FadeChannel::Override)
++        const auto rgbChannel = rgbChannels.constFind(channelHash(fc.fixture(), fc.channel()));
++        if (rgbChannel != rgbChannels.constEnd())
+         {
+-            universe->write(address, value, true);
+-            continue;
+-        }
+-        else if (flags & FadeChannel::Relative)
+-        {
+-            universe->writeRelative(address, value, channelCount);
+-        }
+-        else if (flags & FadeChannel::Flashing)
+-        {
+-            for (int i = 0; i < channelCount; i++)
+-                universe->write(address + i, ((uchar *)&value)[channelCount - 1 - i],
+-                                flags & FadeChannel::ForceLTP ? true : false);
+-            continue;
++            RGBOutput &output = rgbOutputs[*rgbChannel];
++            output.level = qMax(output.level, value);
++            output.peak = qMax(output.peak, qMax(fc.start(), fc.target()));
++            for (int i = 0; i < 3; ++i) if (output.address[i] == address) output.values[i] = value;
++            output.flashing |= flags & FadeChannel::Flashing;
++            output.forceLTP |= flags & (FadeChannel::ForceLTP | FadeChannel::Override);
+         }
+         else
+         {
+-            // treat value as a whole, so do this just once per FadeChannel
+-            universe->writeBlended(address, value, channelCount, m_blendMode);
+-        }
++            // Normalize only a fixture's 8-bit dimmer, never position/strobe channels.
++            Fixture *fixture = brightness >= 0 ? m_colorDoc->fixture(fc.fixture()) : nullptr;
++            if (fixture && channelCount == 1 && fixture->channel(fc.channel()) &&
++                fixture->channel(fc.channel())->group() == QLCChannel::Intensity)
++            {
++                const quint32 peak = m_brightnessDimmerPeaks.value(channelHash(fc.fixture(), fc.channel()), qMax(fc.start(), fc.target()));
++                value = peak ? qMin(255, qRound(value * 255.0 * brightness / (100.0 * peak))) : 0;
++            }
++            //qDebug() << "[GenericFader] >>> uni:" << universe->id() << ", address:" << address << ", value:" << value << "int:" << compIntensity;
++            if (flags & FadeChannel::Override)
++            {
++                universe->write(address, value, true);
++                continue;
++            }
++            else if (flags & FadeChannel::Relative)
++            {
++                universe->writeRelative(address, value, channelCount);
++            }
++            else if (flags & FadeChannel::Flashing)
++            {
++                for (int i = 0; i < channelCount; i++)
++                    universe->write(address + i, ((uchar *)&value)[channelCount - 1 - i],
++                                    flags & FadeChannel::ForceLTP ? true : false);
++                continue;
++            }
++            else
++            {
++                // treat value as a whole, so do this just once per FadeChannel
++                universe->writeBlended(address, value, channelCount, m_blendMode);
++            }
+ 
++        }
+         if (((flags & FadeChannel::Intensity) &&
+             (flags & FadeChannel::HTP) &&
+             m_blendMode == Universe::NormalBlend) || m_fadeOut)
+@@ -315,6 +392,23 @@ void GenericFader::write(Universe *universe, uint elapsedMs)
+             it.remove();
+     }
+ 
++    // The native envelopes and stored targets are untouched. Recolour their
++    // current maximum component so hue can change without lighting idle fixtures.
++    for (auto rgb = rgbOutputs.constBegin(); rgb != rgbOutputs.constEnd(); ++rgb)
++    {
++        const RGBOutput &output = rgb.value();
++        const quint32 peak = m_brightnessRGBPeaks.value(rgb.key(), output.peak);
++        const int components[] = {qRed(overrideRGB), qGreen(overrideRGB), qBlue(overrideRGB)};
++        for (int i = 0; i < 3; ++i)
++        {
++            const qreal nativeValue = overrideRGB >= 0 ? output.level * components[i] / 255.0 : output.values[i];
++            const qreal scale = brightness < 0 ? 1.0 : peak ? 255.0 * brightness / (100.0 * peak) : 0.0;
++            const uchar value = qBound(0, qRound(nativeValue * scale), 255);
++            if (output.flashing || output.forceLTP) universe->write(output.address[i], value, output.forceLTP);
++            else universe->writeBlended(output.address[i], value, 1, m_blendMode);
++        }
++    }
++
+     // self-request deletion when fadeout is complete
+     if (m_fadeOut && m_channels.isEmpty())
+     {
+diff --git a/engine/src/genericfader.h b/engine/src/genericfader.h
+index caac2db..6a24f79 100644
+--- a/engine/src/genericfader.h
++++ b/engine/src/genericfader.h
+@@ -30,6 +30,7 @@
+ #include "scenevalue.h"
+ 
+ class FadeChannel;
++class Doc;
+ 
+ /** @addtogroup engine Engine
+  * @{
+@@ -121,6 +122,13 @@ public:
+      */
+     void write(Universe *universe, uint elapsedMs);
+ 
++    /** Runtime RGB override for tagged Scene and RGB Matrix output. -1 restores stored colours. */
++    static void setSceneColorOverride(int rgb);
++    static int sceneColorOverride();
++    static void setBrightnessOverride(int percent);
++    static int brightnessOverride();
++    void setColorSource(const Doc *doc) { m_colorDoc = doc; }
++
+     /**
+      * Update one channel while holding the internal channel lock.
+      * This avoids exposing raw FadeChannel pointers across threads.
+@@ -175,6 +183,9 @@ signals:
+     void preWriteData(quint32 index, const QByteArray& universeData);
+ 
+ private:
++    const Doc *m_colorDoc = nullptr;
++    QHash<quint32, quint32> m_brightnessRGBPeaks;
++    QHash<quint32, quint32> m_brightnessDimmerPeaks;
+     QString m_name;
+     quint32 m_fid;
+     int m_priority;
+diff --git a/engine/src/rgbmatrix.cpp b/engine/src/rgbmatrix.cpp
+index d4dce0e..ca7b512 100644
+--- a/engine/src/rgbmatrix.cpp
++++ b/engine/src/rgbmatrix.cpp
+@@ -792,6 +792,9 @@ void RGBMatrix::write(MasterTimer *timer, QList<Universe *> universes)
+ void RGBMatrix::postRun(MasterTimer *timer, QList<Universe *> universes)
+ {
+     uint fadeout = overrideFadeOutSpeed() == defaultSpeed() ? fadeOutSpeed() : overrideFadeOutSpeed();
++    const int globalFadeOut = Function::globalFadeOutOverride();
++    if (globalFadeOut >= 0)
++        fadeout = uint(globalFadeOut);
+ 
+     /* If no fade out is needed, dismiss all the requested faders.
+      * Otherwise, set all the faders to fade out and let Universe dismiss them
+@@ -802,7 +805,7 @@ void RGBMatrix::postRun(MasterTimer *timer, QList<Universe *> universes)
+     }
+     else
+     {
+-        if (tempoType() == Beats)
++        if (globalFadeOut < 0 && tempoType() == Beats)
+             fadeout = beatsToTime(fadeout, timer->beatTimeDuration());
+ 
+         foreach (QSharedPointer<GenericFader> fader, m_fadersMap)
+@@ -856,6 +859,7 @@ QSharedPointer<GenericFader> RGBMatrix::getFader(Universe *universe)
+     if (fader.isNull())
+     {
+         fader = universe->requestFader();
++        fader->setColorSource(doc());
+         fader->adjustIntensity(getAttributeValue(Intensity));
+         fader->setBlendMode(blendMode());
+         fader->setName(name());
+@@ -881,7 +885,10 @@ void RGBMatrix::updateFaderValues(FadeChannel &fc, uchar value, uint fadeTime)
+     fc.setElapsed(0);
+     fc.setReady(false);
+     // fade in/out depends on target value
+-    if (value == 0)
++    const int globalFade = value == 0 ? Function::globalFadeOutOverride() : Function::globalFadeInOverride();
++    if (globalFade >= 0)
++        fc.setFadeTime(uint(globalFade));
++    else if (value == 0)
+         fc.setFadeTime(fadeOutSpeed());
+     else
+         fc.setFadeTime(fadeTime);
+diff --git a/engine/src/scene.cpp b/engine/src/scene.cpp
+index 09099c6..7e4dc2f 100644
+--- a/engine/src/scene.cpp
++++ b/engine/src/scene.cpp
+@@ -698,12 +698,20 @@ void Scene::writeDMX(MasterTimer *timer, QList<Universe *> ua)
+                     fader->setBlendMode(blendMode());
+                     fader->setName(name());
+                     fader->setParentFunctionID(id());
++                    fader->setColorSource(doc());
+                     m_fadersMap[universe] = fader;
+                 }
+ 
+                 if (m_flashForceLTP)
+                     fc.addFlag(FadeChannel::ForceLTP);
+                 fc.setTarget(sv.value);
++                const int fadeIn = Function::globalFadeInOverride();
++                if (fadeIn >= 0 && fc.canFade())
++                {
++                    fc.setCurrent(ua[universe]->preGMValue(fc.addressInUniverse()));
++                    fc.setStart(fc.current());
++                    fc.setFadeTime(uint(fadeIn));
++                }
+                 fc.addFlag(FadeChannel::Flashing);
+                 fader->add(fc);
+             }
+@@ -741,6 +749,7 @@ void Scene::processValue(MasterTimer *timer, QList<Universe*> ua, uint fadeIn, c
+         fader->setBlendMode(blendMode());
+         fader->setName(name());
+         fader->setParentFunctionID(id());
++        fader->setColorSource(doc());
+         fader->setParentIntensity(getAttributeValue(ParentIntensity));
+         fader->setHandleSecondary(true);
+         m_fadersMap[universe->id()] = fader;
+@@ -773,7 +782,12 @@ void Scene::processValue(MasterTimer *timer, QList<Universe*> ua, uint fadeIn, c
+         }
+         else
+         {
+-            if (tempoType() == Beats)
++            const int globalFadeIn = Function::globalFadeInOverride();
++            if (globalFadeIn >= 0)
++            {
++                fc.setFadeTime(uint(globalFadeIn));
++            }
++            else if (tempoType() == Beats)
+             {
+                 int fadeInTime = beatsToTime(fadeIn, timer->beatTimeDuration());
+                 int beatOffset = timer->nextBeatTimeOffset();
+@@ -794,6 +808,9 @@ void Scene::processValue(MasterTimer *timer, QList<Universe*> ua, uint fadeIn, c
+ void Scene::handleFadersEnd(MasterTimer *timer)
+ {
+     uint fadeout = overrideFadeOutSpeed() == defaultSpeed() ? fadeOutSpeed() : overrideFadeOutSpeed();
++    const int globalFadeOut = Function::globalFadeOutOverride();
++    if (globalFadeOut >= 0)
++        fadeout = uint(globalFadeOut);
+ 
+     /* If no fade out is needed, dismiss all the requested faders.
+      * Otherwise, set all the faders to fade out and let Universe dismiss them
+@@ -804,7 +821,7 @@ void Scene::handleFadersEnd(MasterTimer *timer)
+     }
+     else
+     {
+-        if (tempoType() == Beats)
++        if (globalFadeOut < 0 && tempoType() == Beats)
+             fadeout = beatsToTime(fadeout, timer->beatTimeDuration());
+ 
+         foreach (QSharedPointer<GenericFader> fader, m_fadersMap)
+diff --git a/webaccess/src/webaccess-qml.cpp b/webaccess/src/webaccess-qml.cpp
+index 7269d5c..a8a6b55 100644
+--- a/webaccess/src/webaccess-qml.cpp
++++ b/webaccess/src/webaccess-qml.cpp
+@@ -51,6 +51,7 @@
+ #include "function.h"
+ #include "chaser.h"
+ #include "doc.h"
++#include "genericfader.h"
+ #include "fixture.h"
+ #include "qlcchannel.h"
+ #include "qlccapability.h"
+@@ -431,6 +432,9 @@ WebAccessQml::WebAccessQml(Doc *doc, VirtualConsole *vcInstance, SimpleDesk *sdI
+ 
+ WebAccessQml::~WebAccessQml()
+ {
++    if (m_sceneColorOwner) GenericFader::setSceneColorOverride(-1);
++    if (m_brightnessOwner) GenericFader::setBrightnessOverride(-1);
++    if (m_fadeOverrideOwner) Function::setGlobalFadeOverride(-1, -1);
+ }
+ 
+ void WebAccessQml::slotHandleHTTPRequest(QHttpRequest *req, QHttpResponse *resp)
+@@ -710,6 +714,43 @@ void WebAccessQml::slotHandleWebSocketRequest(QHttpConnection *conn, QString dat
+                 }
+             }
+         }
++        else if (apiCmd == "setSceneColorOverride")
++        {
++            if (m_auth && user && user->level < SIMPLE_DESK_AND_VC_LEVEL) return;
++            if (cmdList.count() != 6) return;
++            bool ok[4];
++            const int enabled = cmdList[2].toInt(&ok[0]);
++            const int r = cmdList[3].toInt(&ok[1]), g = cmdList[4].toInt(&ok[2]), b = cmdList[5].toInt(&ok[3]);
++            if (!ok[0] || !ok[1] || !ok[2] || !ok[3] || enabled < 0 || enabled > 1 ||
++                r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) return;
++            GenericFader::setSceneColorOverride(enabled ? qRgb(r, g, b) & 0x00ffffff : -1);
++            m_sceneColorOwner = enabled ? conn : nullptr;
++            wsAPIMessage = "QLC+API|setSceneColorOverride|OK";
++        }
++        else if (apiCmd == "setBrightnessOverride")
++        {
++            if (m_auth && user && user->level < SIMPLE_DESK_AND_VC_LEVEL) return;
++            if (cmdList.count() != 4) return;
++            bool ok[2];
++            const int enabled = cmdList[2].toInt(&ok[0]), percent = cmdList[3].toInt(&ok[1]);
++            if (!ok[0] || !ok[1] || enabled < 0 || enabled > 1 || percent < 0 || percent > 100) return;
++            GenericFader::setBrightnessOverride(enabled ? percent : -1);
++            m_brightnessOwner = enabled ? conn : nullptr;
++            wsAPIMessage = "QLC+API|setBrightnessOverride|OK";
++        }
++        else if (apiCmd == "setFadeOverride")
++        {
++            if (m_auth && user && user->level < SIMPLE_DESK_AND_VC_LEVEL) return;
++            if (cmdList.count() != 5) return;
++            bool ok[3];
++            const int enabled = cmdList[2].toInt(&ok[0]);
++            const int fadeIn = cmdList[3].toInt(&ok[1]), fadeOut = cmdList[4].toInt(&ok[2]);
++            if (!ok[0] || !ok[1] || !ok[2] || enabled < 0 || enabled > 1 ||
++                fadeIn < 0 || fadeIn > 1000 || fadeOut < 0 || fadeOut > 1000) return;
++            Function::setGlobalFadeOverride(enabled ? fadeIn : -1, enabled ? fadeOut : -1);
++            m_fadeOverrideOwner = enabled ? conn : nullptr;
++            wsAPIMessage = "QLC+API|setFadeOverride|OK";
++        }
+         else if (apiCmd == "getChannelsValues")
+         {
+             if (m_auth && user && user->level < SIMPLE_DESK_AND_VC_LEVEL)
+@@ -1031,6 +1072,18 @@ void WebAccessQml::slotHandleWebSocketRequest(QHttpConnection *conn, QString dat
+ 
+ void WebAccessQml::slotHandleWebSocketClose(QHttpConnection *conn)
+ {
++    if (m_brightnessOwner == conn) {
++        GenericFader::setBrightnessOverride(-1);
++        m_brightnessOwner = nullptr;
++    }
++    if (m_fadeOverrideOwner == conn) {
++        Function::setGlobalFadeOverride(-1, -1);
++        m_fadeOverrideOwner = nullptr;
++    }
++    if (m_sceneColorOwner == conn) {
++        GenericFader::setSceneColorOverride(-1);
++        m_sceneColorOwner = nullptr;
++    }
+     qDebug() << "Websocket Connection closed";
+     if (conn->userData)
+     {
+@@ -1057,6 +1110,12 @@ void WebAccessQml::slotFunctionStopped(quint32 fid)
+ 
+ void WebAccessQml::slotDocLoaded()
+ {
++    Function::setGlobalFadeOverride(-1, -1);
++    m_fadeOverrideOwner = nullptr;
++    GenericFader::setSceneColorOverride(-1);
++    m_sceneColorOwner = nullptr;
++    GenericFader::setBrightnessOverride(-1);
++    m_brightnessOwner = nullptr;
+     m_pendingProjectLoaded = true;
+     m_connectedWidgets.clear();
+ }
+diff --git a/webaccess/src/webaccess-qml.h b/webaccess/src/webaccess-qml.h
+index 08b3f91..7c8157e 100644
+--- a/webaccess/src/webaccess-qml.h
++++ b/webaccess/src/webaccess-qml.h
+@@ -114,6 +114,9 @@ protected:
+ 
+ protected:
+     QSet<quint32> m_connectedWidgets;
++    QHttpConnection *m_sceneColorOwner = nullptr;
++    QHttpConnection *m_brightnessOwner = nullptr;
++    QHttpConnection *m_fadeOverrideOwner = nullptr;
+ };
+ 
+ #endif // WEBACCESS_QML_H

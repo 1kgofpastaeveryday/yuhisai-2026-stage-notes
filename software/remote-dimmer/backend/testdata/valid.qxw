@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Workspace>
+<Workspace xmlns="http://www.qlcplus.org/Workspace">
+ <Engine>
+  <Fixture><ID>7</ID><Universe>0</Universe><Address>7</Address></Fixture>
+ </Engine>
+ <VirtualConsole><Frame ID="1">
+  <Slider ID="45"><SliderMode>Level</SliderMode><Level LowLimit="0" HighLimit="255"><Channel Fixture="7">1</Channel></Level></Slider>
+  <Slider ID="46"><SliderMode>Level</SliderMode><Level LowLimit="0" HighLimit="255"><Channel Fixture="7">2</Channel></Level></Slider>
+  <Frame ID="120"><Multipage PagesNum="2" CurrentPage="0"/><PagesLoop>False</PagesLoop></Frame>
+ </Frame></VirtualConsole>
+</Workspace>

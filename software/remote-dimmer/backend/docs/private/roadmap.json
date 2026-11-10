@@ -1,0 +1,203 @@
+{
+  "project": "remote-dimmer backend",
+  "title": "Backend private roadmap",
+  "updated_at": "2026-11-07T12:36:08+09:00",
+  "active_task": {
+    "feature_id": "protocol-v2",
+    "phase": "local verification complete; Claude review pending",
+    "note": "Issue #59 option A implemented. go test -count=1 ./... and go vet ./... passed; JS syntax and socket-free console checks passed. No live deployment or physical lighting verification.",
+    "updated_at": "2026-11-07T12:36:08+09:00",
+    "idle_abandon_hours": 3
+  },
+  "summary": "Private developer roadmap. Track what exists, what is designed, what is unfinished, and what should be built next.",
+  "scoring_policy": "Progress is an evidence-based maturity `stage`, not a percentage. Each stage is defined by a checkable criterion (see `stages`). Raise a stage only when the criterion is met, and record the observed evidence in the feature changelog. Never invent numeric progress figures.",
+  "overview": [],
+  "status_labels": {
+    "available": "内部検証で使用可能",
+    "alpha": "動くが荒い",
+    "planned": "設計先行",
+    "exploring": "検討中"
+  },
+  "snapshot": [],
+  "features": [
+    {
+      "id": "windows-show-host",
+      "name": "Windows show host on <HOST>",
+      "stage": "spike",
+      "status": "alpha",
+      "summary": "Windows deployment of the existing backend, browser gateway and admin console.",
+      "done": [
+        "Windows venue/tunnel configs and CMD launchers prepared; runtime remains on D:",
+        "Windows config and web README now reference <PATH>",
+        "go test ./... passed on Windows for backend, admin console and web gateway",
+        "Existing credentials found without modification; tunnel info reports no active connection",
+        "Existing Windows start order and unapplied administrator firewall commands reviewed; all three launcher PowerShell bodies parse"
+      ],
+      "remaining_issues": [
+        "Native start-server.cmd /status HTTP 200 not tested: active qlcplus5 PID 44636 listens on 9999 and backend startup sends zero levels",
+        "Windows connector registration not tested: start-web.cmd depends on the unstarted backend",
+        "Real QLC+, physical iPhone, physical DMX and firewall rules remain unverified"
+      ],
+      "current_state": "Paths and Go tests verified. Live startup and connector checks are blocked to avoid zero-level writes into the owner's active QLC+ work. No backend, gateway, admin console or connector started.",
+      "next_actions": [
+        "At an owner-approved safe lighting moment, run start-server.cmd and confirm /status HTTP 200",
+        "Recheck tunnel info; only if no active connector, run start-web.cmd for at most 45 seconds and stop only those new processes"
+      ],
+      "changelog": [
+        {
+          "date": "2026-11-04",
+          "reason": "Owner requested replacing the Mac show host with Windows while preserving the tunnel and existing Mac files."
+        },
+        {
+          "date": "2026-11-04",
+          "reason": "Paths and Go tests verified. Live startup and connector checks are blocked to avoid zero-level writes into the owner's active QLC+ work. No backend, gateway, admin console or connector started. Evidence: <PATH>"
+        }
+      ]
+    },
+    {
+      "id": "protocol-v2",
+      "name": "Multi-fixture and device-key authentication",
+      "stage": "spike",
+      "status": "alpha",
+      "summary": "Server side of MULTI.md",
+      "done": [
+        "Server contract implemented",
+        "Vet and compile passed",
+        "14 socket-free tests passed with race detection, repeated three times",
+        "Native macOS and Windows amd64 builds passed",
+        "README and results prepared",
+        "Issue #59: release and forget zero levels through the shared shutdown desired-level helper; direct assignment transfers preserve brightness, validate recipients and notify both phones; console and documentation updated"
+      ],
+      "remaining_issues": [
+        "Full race suite requires loopback bind permission outside sandbox",
+        "Real iPhone, QLC+ and public tunnel validation not run",
+        "Issue #59: Claude review and separately authorized live validation of this source revision remain pending; browser rendering and physical lighting were not exercised"
+      ],
+      "current_state": "Issue #59 source revision passes the full isolated Windows Go suite (84.309s for backend), go vet, edited JS syntax checks and socket-free console interaction checks. Release/forget zeroing and level-preserving CLI transfers are covered with fake QLC and phones. No live deployment or physical-output verification.",
+      "next_actions": [
+        "Claude: run go test -race -count=3 ./... outside sandbox",
+        "#59: Claude reviews source/results; validate console rendering and live output only in a separately authorized safe session"
+      ],
+      "changelog": [
+        {
+          "date": "2026-10-29",
+          "reason": "Implementing the delegated MULTI.md server contract."
+        },
+        {
+          "date": "2026-10-29",
+          "reason": "Completed server implementation; vet, compile, socket-free race tests and cross-platform builds pass. Full socket suite blocked by sandbox. See RESULTS-v2.md."
+        },
+        {
+          "date": "2026-11-07",
+          "reason": "Issue #59 option A implemented and locally verified: release/forget zero levels, owned-fixture assignment transfers preserve levels and push both phones, console offers moves and warns before zeroing. Full Go tests and vet passed with scratch caches and offline dependencies; mock console checks passed. See backend/RESULTS-issue59.md. Stage unchanged; no live services touched."
+        }
+      ]
+    },
+    {
+      "id": "web-remote",
+      "name": "Mac-hosted browser dimmer",
+      "stage": "spike",
+      "status": "alpha",
+      "summary": "One fixture per browser, existing device-key approval and QLC backend.",
+      "done": [
+        "Mac-hosted embedded browser UI and loopback-only gateway, existing backend unchanged",
+        "Single-fixture control, key approval, 34ms coalescing, lifecycle cancellation and backend-socket heartbeat",
+        "Go race tests and vet passed; public admin routes excluded",
+        "Chromium and mobile WebKit isolated integration passed: relative drag, touch toggle, absolute touch, identity persistence, multi-fixture blocking, socket stall recovery and release",
+        "Dedicated Worker deployed as <REDACTED>; existing tunnel extended",
+        "Public URL HTML and WebSocket heartbeat passed in Chromium and mobile WebKit; active backend remained PID 40014 with levels 195/130",
+        "Restart launcher and usage documentation prepared",
+        "Phone UI now locks document scrolling in portrait/landscape with a dynamic viewport",
+        "Native fullscreen entry and exit on supported browsers; feature-detected iPhone help and standalone/Home Screen display settings",
+        "Same-origin manifest and app icon served through dedicated public route; standalone launch defaults without browser bars",
+        "Chromium/mobile WebKit passed display checks at 390x844, 320x568, 844x390 and 568x320; full control/reconnect regression passed",
+        "Worker route whitelist updated as version <REDACTED>; backend brightness preserved"
+      ],
+      "remaining_issues": [
+        "Windows show-host startup, public-route connectivity and venue Internet must be verified; switching the existing tunnel must not leave two host connectors running.",
+        "Physical iPhone Safari/Home Screen, operator assignment, actual fixture/address mapping and DMX output remain unverified.",
+        "Browser client intentionally supports one fixture per device. Operator/fixture choices and cue communication are undecided.",
+        "Phone background/foreground and Internet interruption recovery require venue verification; disconnect retains the last light level.",
+        "QLC+ 261029-iphone-remote.qxw and live show switching must be checked together; backend startup/shutdown zeroes configured channels. No unified show project should be built before the owner requests it."
+      ],
+      "current_state": "Oct29 Web implementation and browser verification exist. Nov4 source/document review plus isolated gateway/admin Go tests, vet and JS syntax checks passed. Windows startup is prepared but live end-to-end operation and physical iPhone/fixtures remain unverified. No live backend or tunnel was started in this review.",
+      "next_actions": [
+        "Follow Windows start order in web/README.md during an authorized lighting check; verify local status and the public URL on the actual iPhone.",
+        "Assign exactly one fixture per browser, confirm displayed name/address against the actual lamp, and test on/off, dimming and reconnection.",
+        "Decide operators, fixtures and cue communication; verify stopping the remote backend before switching QLC+ projects.",
+        "Keep camera/HDMI/power checks separate in issues #9/#34; Web migration alone did not complete the Oct29 onsite checks."
+      ],
+      "changelog": [
+        {
+          "date": "2026-10-29",
+          "reason": "Owner requested a quickly testable browser port hosted on this Mac through Cloudflare Tunnel under knudg.com."
+        },
+        {
+          "date": "2026-10-29",
+          "reason": "Implemented and published isolated Web gateway; Go race/vet, both browser integration suites and public socket checks pass. WebKit rapid-toggle state lag fixed. Physical iPhone/DMX verification remains pending."
+        },
+        {
+          "date": "2026-10-29",
+          "reason": "Applied owner correction: fullscreen/no-scroll belongs to the phone UI. Added fixed phone viewport, native fullscreen toggle where supported, and standalone manifest/icon for Home Screen launch. Admin display changes were reverted."
+        },
+        {
+          "date": "2026-11-04",
+          "reason": "Owner clarified Oct29 meeting only decided minimal Web migration. Reviewed source and current Windows launchers. go test -count=1 ./cmd/web-gateway ./cmd/admin-console, go vet for those packages and node --check on both clients passed. No new application code, deployment, live browser session, tunnel or fixture operation. Replaced obsolete Mac-only remaining actions with current venue checks."
+        }
+      ]
+    },
+    {
+      "id": "admin-console",
+      "name": "Local administration console",
+      "stage": "spike",
+      "status": "alpha",
+      "summary": "Fundamental Styles GUI with join QR, live fixtures/devices and assignment controls.",
+      "done": [
+        "Local-only console on 127.0.0.1:8769 with explicit management API proxy allowlist; existing backend and public gateway unchanged",
+        "Fundamental Styles 0.42.0 and SAP Horizon 11.36.5 theme/fonts vendored locally with licenses",
+        "Join QR with large dialog, copy link, live device search, one-fixture assignment/release and confirmed credential deletion",
+        "Live QLC/backend/fixture states, level meters, filters, warnings and unavailable-server state",
+        "Go race tests and vet passed for admin; existing gateway race tests passed",
+        "Chromium and WebKit isolated integration passed assignment/release/delete, select stability, search/filter, backend loss and layouts at 1440/1280/390px",
+        "Rendered QR decoded by zbarimg to exact public URL in both engines",
+        "Live display verified read-only; existing backend levels remain untouched"
+      ],
+      "remaining_issues": [
+        "Operator GUI use and QR scanning on a physical iPhone remain unverified",
+        "Console currently runs in a foreground tool session; restart via start-admin.command after termination"
+      ],
+      "current_state": "Local management GUI restored to its original scrolling layout at 127.0.0.1:8769.",
+      "next_actions": [
+        "Owner scans QR and assigns the desired fixture from the console"
+      ],
+      "changelog": [
+        {
+          "date": "2026-10-29",
+          "reason": "Owner requested enhanced admin GUI and public-link QR using SAP Fundamental Styles."
+        },
+        {
+          "date": "2026-10-29",
+          "reason": "Implemented and verified local Fundamental Styles administration console and QR onboarding without restarting or mutating live lighting backend."
+        },
+        {
+          "date": "2026-10-29",
+          "reason": "Owner requested no scrolling and default fullscreen. Added fixed viewport, pagination, default one-click fullscreen entry and enter/exit control. Browser user-activation requirement prevents silent automatic fullscreen."
+        },
+        {
+          "date": "2026-10-29",
+          "reason": "Owner clarified fullscreen/no-scroll was for the phone client, not admin. Restored admin scrolling layout and removed admin fullscreen/pagination controls; preserved the original GUI and QR functionality."
+        }
+      ]
+    }
+  ],
+  "priorities": [],
+  "not_ready_claims": [],
+  "stages": {
+    "not-started": "コードが存在しない（設計メモのみは可）",
+    "spike": "動くコードはあるが実運用実績なし（使い捨て検証・ベンチ・PoCのみ）",
+    "prototype": "実データ・実運用で最低1回動いた実績がある",
+    "internal": "開発者自身が複数日にわたり繰り返し実運用している",
+    "usable": "開発者以外がドキュメントどおりにセットアップして使える",
+    "hardened": "公開運用に耐える（実認証・監視・障害復旧・コスト管理）"
+  }
+}

@@ -1,0 +1,12 @@
+# Extends the existing <HOST> tunnel without exposing local management.
+tunnel: <HOST>
+credentials-file: <PATH><HOST>.json
+protocol: http2
+ingress:
+  - hostname: <HOST>
+    path: ^/ws$
+    service: http://127.0.0.1:8766
+  - hostname: <HOST>
+    path: ^/yuhisai/2026/dimmer/(|app\.js|style\.css|manifest\.webmanifest|icon\.png|ws)$
+    service: http://127.0.0.1:8768
+  - service: http_status:404

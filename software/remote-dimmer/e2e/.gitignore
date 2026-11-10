@@ -1,0 +1,5 @@
+assignments.json
+*.log
+remote-dimmer
+*.pid
+observations.log

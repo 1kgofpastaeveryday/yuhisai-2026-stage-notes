@@ -1,0 +1,300 @@
+{
+  "cues": [
+    {
+      "beat": 0,
+      "name": "ACT01_SONG01"
+    },
+    {
+      "beat": 16,
+      "name": "ACT01_SONG02"
+    },
+    {
+      "beat": 32,
+      "name": "ACT01_SONG03"
+    },
+    {
+      "beat": 48,
+      "name": "ACT01_SONG04"
+    },
+    {
+      "beat": 64,
+      "name": "[DEMO_01] SETSTOP"
+    },
+    {
+      "beat": 68,
+      "name": "ACT02_SONG01"
+    },
+    {
+      "beat": 84,
+      "name": "ACT02_SONG02"
+    },
+    {
+      "beat": 100,
+      "name": "ACT02_SONG03"
+    },
+    {
+      "beat": 116,
+      "name": "ACT02_SONG04"
+    },
+    {
+      "beat": 132,
+      "name": "[DEMO_02] SETSTOP"
+    },
+    {
+      "beat": 136,
+      "name": "ACT03_SONG01"
+    },
+    {
+      "beat": 152,
+      "name": "ACT03_SONG02"
+    },
+    {
+      "beat": 168,
+      "name": "ACT03_SONG03"
+    },
+    {
+      "beat": 184,
+      "name": "ACT03_SONG04"
+    },
+    {
+      "beat": 200,
+      "name": "[DEMO_03] SETSTOP"
+    },
+    {
+      "beat": 204,
+      "name": "ACT04_SONG01"
+    },
+    {
+      "beat": 220,
+      "name": "ACT04_SONG02"
+    },
+    {
+      "beat": 236,
+      "name": "ACT04_SONG03"
+    },
+    {
+      "beat": 252,
+      "name": "ACT04_SONG04"
+    },
+    {
+      "beat": 268,
+      "name": "[DEMO_04] SETSTOP"
+    },
+    {
+      "beat": 272,
+      "name": "ACT05_SONG01"
+    },
+    {
+      "beat": 288,
+      "name": "ACT05_SONG02"
+    },
+    {
+      "beat": 304,
+      "name": "ACT05_SONG03"
+    },
+    {
+      "beat": 320,
+      "name": "ACT05_SONG04"
+    },
+    {
+      "beat": 336,
+      "name": "[DEMO_05] SETSTOP"
+    },
+    {
+      "beat": 340,
+      "name": "ACT06_SONG01"
+    },
+    {
+      "beat": 356,
+      "name": "ACT06_SONG02"
+    },
+    {
+      "beat": 372,
+      "name": "ACT06_SONG03"
+    },
+    {
+      "beat": 388,
+      "name": "ACT06_SONG04"
+    },
+    {
+      "beat": 404,
+      "name": "[DEMO_06] SETSTOP"
+    },
+    {
+      "beat": 408,
+      "name": "ACT07_SONG01"
+    },
+    {
+      "beat": 424,
+      "name": "ACT07_SONG02"
+    },
+    {
+      "beat": 440,
+      "name": "ACT07_SONG03"
+    },
+    {
+      "beat": 456,
+      "name": "ACT07_SONG04"
+    },
+    {
+      "beat": 472,
+      "name": "[DEMO_07] SETSTOP"
+    },
+    {
+      "beat": 476,
+      "name": "ACT08_SONG01"
+    },
+    {
+      "beat": 492,
+      "name": "ACT08_SONG02"
+    },
+    {
+      "beat": 508,
+      "name": "ACT08_SONG03"
+    },
+    {
+      "beat": 524,
+      "name": "ACT08_SONG04"
+    },
+    {
+      "beat": 540,
+      "name": "[DEMO_08] SETSTOP"
+    },
+    {
+      "beat": 544,
+      "name": "ACT09_SONG01"
+    },
+    {
+      "beat": 560,
+      "name": "ACT09_SONG02"
+    },
+    {
+      "beat": 576,
+      "name": "ACT09_SONG03"
+    },
+    {
+      "beat": 592,
+      "name": "ACT09_SONG04"
+    },
+    {
+      "beat": 608,
+      "name": "[DEMO_09] SETSTOP"
+    },
+    {
+      "beat": 612,
+      "name": "ACT10_SONG01"
+    },
+    {
+      "beat": 628,
+      "name": "ACT10_SONG02"
+    },
+    {
+      "beat": 644,
+      "name": "ACT10_SONG03"
+    },
+    {
+      "beat": 660,
+      "name": "ACT10_SONG04"
+    },
+    {
+      "beat": 676,
+      "name": "[DEMO_10] SETSTOP"
+    },
+    {
+      "beat": 680,
+      "name": "ACT11_SONG01"
+    },
+    {
+      "beat": 696,
+      "name": "ACT11_SONG02"
+    },
+    {
+      "beat": 712,
+      "name": "ACT11_SONG03"
+    },
+    {
+      "beat": 728,
+      "name": "ACT11_SONG04"
+    },
+    {
+      "beat": 744,
+      "name": "[DEMO_11] SETSTOP"
+    },
+    {
+      "beat": 748,
+      "name": "ACT12_SONG01"
+    },
+    {
+      "beat": 764,
+      "name": "ACT12_SONG02"
+    },
+    {
+      "beat": 780,
+      "name": "ACT12_SONG03"
+    },
+    {
+      "beat": 796,
+      "name": "ACT12_SONG04"
+    },
+    {
+      "beat": 812,
+      "name": "[DEMO_12] SETSTOP"
+    }
+  ],
+  "tempos": [
+    {
+      "beat": 0,
+      "bpm": 120
+    },
+    {
+      "beat": 68,
+      "bpm": 90
+    },
+    {
+      "beat": 100,
+      "bpm": 180
+    },
+    {
+      "beat": 136,
+      "bpm": 150
+    },
+    {
+      "beat": 204,
+      "bpm": 120
+    },
+    {
+      "beat": 272,
+      "bpm": 90
+    },
+    {
+      "beat": 340,
+      "bpm": 150
+    },
+    {
+      "beat": 408,
+      "bpm": 120
+    },
+    {
+      "beat": 476,
+      "bpm": 90
+    },
+    {
+      "beat": 544,
+      "bpm": 150
+    },
+    {
+      "beat": 612,
+      "bpm": 120
+    },
+    {
+      "beat": 680,
+      "bpm": 90
+    },
+    {
+      "beat": 748,
+      "bpm": 150
+    }
+  ],
+  "beats_per_bar": 4,
+  "source": "synthetic; no Live project read or modified"
+}

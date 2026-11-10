@@ -1,0 +1,5 @@
+{
+  "defaultSource": "<PATH>",
+  "rackName": "QLC Live Auto Labels",
+  "endpoint": "http://127.0.0.1:9999"
+}

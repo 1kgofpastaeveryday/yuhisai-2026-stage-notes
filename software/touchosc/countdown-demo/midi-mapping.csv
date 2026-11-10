@@ -1,0 +1,56 @@
+﻿control,type,channel,number,value,connection,target,role,enabled
+qlc_stop_all,NOTE_ON,1,111,127,2,VC button 3 / StopAll,qlc_stop_all,False
+border_on,CONTROLCHANGE,1,117,127,2,Scene 10 / Flash / DMX 1,qlc_border_on,False
+border_off,CONTROLCHANGE,1,117,0,2,Scene 10 / Flash / DMX 1,qlc_border_off,False
+act01_song01,NOTE_ON,16,0,127,1,ACT01_SONG01,song_locator,False
+act01_song02,NOTE_ON,16,1,127,1,ACT01_SONG02,song_locator,False
+act01_song03,NOTE_ON,16,2,127,1,ACT01_SONG03,song_locator,False
+act01_song04,NOTE_ON,16,3,127,1,ACT01_SONG04,song_locator,False
+act02_song01,NOTE_ON,16,4,127,1,ACT02_SONG01,song_locator,False
+act02_song02,NOTE_ON,16,5,127,1,ACT02_SONG02,song_locator,False
+act02_song03,NOTE_ON,16,6,127,1,ACT02_SONG03,song_locator,False
+act02_song04,NOTE_ON,16,7,127,1,ACT02_SONG04,song_locator,False
+act03_song01,NOTE_ON,16,8,127,1,ACT03_SONG01,song_locator,False
+act03_song02,NOTE_ON,16,9,127,1,ACT03_SONG02,song_locator,False
+act03_song03,NOTE_ON,16,10,127,1,ACT03_SONG03,song_locator,False
+act03_song04,NOTE_ON,16,11,127,1,ACT03_SONG04,song_locator,False
+act04_song01,NOTE_ON,16,12,127,1,ACT04_SONG01,song_locator,False
+act04_song02,NOTE_ON,16,13,127,1,ACT04_SONG02,song_locator,False
+act04_song03,NOTE_ON,16,14,127,1,ACT04_SONG03,song_locator,False
+act04_song04,NOTE_ON,16,15,127,1,ACT04_SONG04,song_locator,False
+act05_song01,NOTE_ON,16,16,127,1,ACT05_SONG01,song_locator,False
+act05_song02,NOTE_ON,16,17,127,1,ACT05_SONG02,song_locator,False
+act05_song03,NOTE_ON,16,18,127,1,ACT05_SONG03,song_locator,False
+act05_song04,NOTE_ON,16,19,127,1,ACT05_SONG04,song_locator,False
+act06_song01,NOTE_ON,16,20,127,1,ACT06_SONG01,song_locator,False
+act06_song02,NOTE_ON,16,21,127,1,ACT06_SONG02,song_locator,False
+act06_song03,NOTE_ON,16,22,127,1,ACT06_SONG03,song_locator,False
+act06_song04,NOTE_ON,16,23,127,1,ACT06_SONG04,song_locator,False
+act07_song01,NOTE_ON,16,24,127,1,ACT07_SONG01,song_locator,False
+act07_song02,NOTE_ON,16,25,127,1,ACT07_SONG02,song_locator,False
+act07_song03,NOTE_ON,16,26,127,1,ACT07_SONG03,song_locator,False
+act07_song04,NOTE_ON,16,27,127,1,ACT07_SONG04,song_locator,False
+act08_song01,NOTE_ON,16,28,127,1,ACT08_SONG01,song_locator,False
+act08_song02,NOTE_ON,16,29,127,1,ACT08_SONG02,song_locator,False
+act08_song03,NOTE_ON,16,30,127,1,ACT08_SONG03,song_locator,False
+act08_song04,NOTE_ON,16,31,127,1,ACT08_SONG04,song_locator,False
+act09_song01,NOTE_ON,16,32,127,1,ACT09_SONG01,song_locator,False
+act09_song02,NOTE_ON,16,33,127,1,ACT09_SONG02,song_locator,False
+act09_song03,NOTE_ON,16,34,127,1,ACT09_SONG03,song_locator,False
+act09_song04,NOTE_ON,16,35,127,1,ACT09_SONG04,song_locator,False
+act10_song01,NOTE_ON,16,36,127,1,ACT10_SONG01,song_locator,False
+act10_song02,NOTE_ON,16,37,127,1,ACT10_SONG02,song_locator,False
+act10_song03,NOTE_ON,16,38,127,1,ACT10_SONG03,song_locator,False
+act10_song04,NOTE_ON,16,39,127,1,ACT10_SONG04,song_locator,False
+act11_song01,NOTE_ON,16,40,127,1,ACT11_SONG01,song_locator,False
+act11_song02,NOTE_ON,16,41,127,1,ACT11_SONG02,song_locator,False
+act11_song03,NOTE_ON,16,42,127,1,ACT11_SONG03,song_locator,False
+act11_song04,NOTE_ON,16,43,127,1,ACT11_SONG04,song_locator,False
+act12_song01,NOTE_ON,16,44,127,1,ACT12_SONG01,song_locator,False
+act12_song02,NOTE_ON,16,45,127,1,ACT12_SONG02,song_locator,False
+act12_song03,NOTE_ON,16,46,127,1,ACT12_SONG03,song_locator,False
+act12_song04,NOTE_ON,16,47,127,1,ACT12_SONG04,song_locator,False
+metronome_on,CONTROLCHANGE,16,117,127,1,METRO ON,metronome_on,False
+metronome_off,CONTROLCHANGE,16,116,127,1,METRO OFF,metronome_off,False
+resume,CONTROLCHANGE,16,119,127,1,SETCONT,resume,False
+live_stop,CONTROLCHANGE,16,118,127,1,Live Stop,live_stop,False

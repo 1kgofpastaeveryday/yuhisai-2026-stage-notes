@@ -1,0 +1,5 @@
+name = "<HOST>-web"
+main = "worker.js"
+compatibility_date = "2026-10-29"
+workers_dev = false
+routes = [{ pattern = "knudg.com/yuhisai/2026/dimmer*", zone_name = "knudg.com" }]

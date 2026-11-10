@@ -1,0 +1,28 @@
+'use strict';
+// Pure MIDI/state tests. No live QLC, DMX or MIDI port.
+const assert = require('assert');
+const SceneColorState = require('./scene-color');
+const MidiRouter = require('./midi-router');
+const {allocate,validateRegistry} = require('./source');
+const sent = [], bytes = [];
+const color = new SceneColorState(s=>sent.push(s));
+const router = new MidiRouter(p=>bytes.push(p),null,null,(cc,v)=>color.cc(cc,v));
+router.update([{liveNote:7,channel:0,note:121,type:'Button',valid:true}]);
+const cc=(n,v)=>[176,n,v].forEach(b=>router.byte(b));
+cc(20,0);cc(21,0);cc(22,127);cc(23,127);
+assert.equal(sent.at(-1),'QLC+API|setSceneColorOverride|1|0|0|255');
+[144,7,127,128,7,0].forEach(b=>router.byte(b));
+assert.deepEqual(bytes,[[144,121,127],[128,121,0]],'Notes and their timing still route to native Scene buttons');
+cc(20,64);cc(21,13);
+assert.equal(sent.at(-1),'QLC+API|setSceneColorOverride|1|129|26|255','Colour changes while a Scene can remain active');
+cc(20,127);cc(21,26);
+assert.equal(sent.at(-1),'QLC+API|setSceneColorOverride|1|255|52|255');
+cc(23,0);assert.equal(sent.at(-1),'QLC+API|setSceneColorOverride|0|255|52|255','Disable restores each stored Scene colour');
+cc(23,127);color.reset();assert.equal(color.enabled,false);
+const count=sent.length;router.enabled=false;cc(23,127);assert.equal(sent.length,count);
+color.cc(23,127,false);assert.equal(color.enabled,false,'No enabling through a failed output gate');
+color.cc(22,-1);color.cc(22,128);assert.equal(sent.length,count);
+const registry=allocate([{widgetId:'1',type:'Slider',valid:true,preferred:20}]);
+assert(registry.bindings[0].ccNumber>=24,'New sliders avoid Scene colour CCs');
+assert.throws(()=>validateRegistry({version:1,bindings:[{widgetId:'1',liveNote:1,ccNumber:23}]}),/reserved/);
+console.log('PASS: global Scene colour RGB/enable CCs, original note routing, blue-to-pink interpolation, restore/off/error gates and CC reservation.');

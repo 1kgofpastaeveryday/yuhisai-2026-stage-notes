@@ -1,0 +1,14 @@
+{
+  "listen": "127.0.0.1:8767",
+  "qlcURL": "ws://127.0.0.1:9999/qlcplusWS",
+  "project": "show.qxw",
+  "indicatorFrame": 120,
+  "assignmentsFile": "moving-assignments.json",
+  "logFile": "moving-backend.log",
+  "fixtures": [
+    {"name":"中央","slider":45,"universe":1,"address":1},
+    {"name":"Spot L","kind":"moving","slider":47,"universe":1,"address":20,
+     "pan":{"universe":1,"coarse":21,"fine":22,"min":10000,"max":50000},
+     "tilt":{"universe":1,"coarse":23,"fine":24,"min":16000,"max":42000}}
+  ]
+}
