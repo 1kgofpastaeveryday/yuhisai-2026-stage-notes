@@ -17,7 +17,8 @@ NOINDEX = True
 
 # (content dir, output file, page title, short tab label)
 PAGES = [
-    ('stage', 'index.html', '小講堂でステージを担当する人へ', 'ステージ担当の手引き'),
+    ('guide', 'index.html', '小講堂でステージを担当する人へ', '手引き'),
+    ('record', 'record.html', '雄飛祭2026 小講堂ステージの作業記録', '作業記録'),
     ('ai', 'ai.html', 'AIエージェントでステージを動かした記録', 'AIエージェントの記録'),
 ]
 VENDOR_CSS = ROOT / 'tools/vendor/astryx/theme-neutral.css'
@@ -42,8 +43,8 @@ def main():
     OUT.mkdir()
     for section, filename, title, _ in PAGES:
         body, toc = render(section)
-        # The numbered lessons under 「次の担当者に伝えたいこと」 render as cards (style.css .lessons).
-        body = re.sub(r'(<h3 id="次の担当者に伝えたいこと">.*?<ol)>', r'\1 class="lessons">', body, count=1, flags=re.S)
+        # The numbered items under 「最初に知っておくこと」 render as cards (style.css .lessons).
+        body = re.sub(r'(<h2 id="最初に知っておくこと">.*?<ol)>', r'\1 class="lessons">', body, count=1, flags=re.S)
         current = ' aria-current="page"'
         nav = ''.join(
             f'<a href="{f}"{current if f == filename else ""}>{html.escape(label)}</a>'
@@ -61,7 +62,24 @@ def main():
     (OUT / 'style.css').write_text((ROOT / 'tools/style.css').read_text())
     (OUT / 'astryx-theme-neutral.css').write_text(VENDOR_CSS.read_text())
     (OUT / '.nojekyll').write_text('')
+    check_links()
     print('built', sorted(p.name for p in OUT.iterdir()))
+
+
+def check_links():
+    """Fail the build when an internal link points at a missing page or heading id."""
+    ids = {p.name: set(re.findall(r'id="([^"]+)"', p.read_text())) for p in OUT.glob('*.html')}
+    broken = []
+    for page in OUT.glob('*.html'):
+        for href in re.findall(r'href="([^"#:]*)(?:#([^"]*))?"', page.read_text()):
+            target, frag = href
+            if target.startswith(('http', '//')) or target.endswith('.css'):
+                continue
+            name = page.name if target == '' else 'index.html' if target == './' else target
+            if name not in ids or (frag and frag not in ids[name]):
+                broken.append(f'{page.name}: {target}#{frag}')
+    if broken:
+        raise SystemExit('broken internal links:\n' + '\n'.join(broken))
 
 
 if __name__ == '__main__':
