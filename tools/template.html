@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ja" data-astryx-theme="neutral">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{robots}}
+<title>{{title}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="astryx-theme-neutral.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="progress" aria-hidden="true"><span id="progress"></span></div>
+<header class="site">
+  <div class="site-inner">
+    <span class="site-name">雄飛祭2026 小講堂ステージの記録</span>
+    <nav class="tabs" aria-label="ページ">{{nav}}</nav>
+  </div>
+</header>
+<div class="layout">
+  <aside class="toc">
+    <details id="toc"><summary>目次</summary><nav aria-label="目次">{{toc}}</nav></details>
+  </aside>
+  <main>
+{{body}}
+  </main>
+</div>
+<a class="to-top" href="#" aria-label="ページの先頭へ">↑</a>
+<script>
+(() => {
+  const toc = document.getElementById('toc');
+  const wide = matchMedia('(min-width: 961px)');
+  const syncToc = () => { toc.open = wide.matches; };
+  syncToc();
+  wide.addEventListener('change', syncToc);
+  // Close the TOC on narrow screens after a jump.
+  toc.addEventListener('click', e => { if (e.target.closest('a') && !wide.matches) toc.open = false; });
+
+  const links = new Map();
+  toc.querySelectorAll('a[href^="#"]').forEach(a => links.set(decodeURIComponent(a.hash.slice(1)), a));
+  const heads = [...document.querySelectorAll('main h2[id], main h3[id]')].filter(h => links.has(h.id));
+  const bar = document.getElementById('progress');
+  const top = document.querySelector('.to-top');
+  let active = null;
+  const update = () => {
+    const doc = document.documentElement;
+    const max = doc.scrollHeight - innerHeight;
+    bar.style.transform = `scaleX(${max > 0 ? scrollY / max : 0})`;
+    top.classList.toggle('show', scrollY > innerHeight * 1.5);
+    let current = null;
+    for (const h of heads) { if (h.getBoundingClientRect().top < 120) current = h; else break; }
+    const link = current && links.get(current.id);
+    if (link !== active) {
+      active?.removeAttribute('aria-current');
+      link?.setAttribute('aria-current', 'location');
+      if (link && wide.matches) link.scrollIntoView({block: 'nearest'});
+      active = link;
+    }
+  };
+  addEventListener('scroll', () => requestAnimationFrame(update), {passive: true});
+  update();
+})();
+</script>
+</body>
+</html>
