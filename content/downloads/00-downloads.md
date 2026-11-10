@@ -48,16 +48,29 @@
 
 ### 写真
 
+照明の回路を1つずつ点けた直後に撮った写真です。どの灯体が舞台のどこを照らすかの参考にしてください。並びは上の DMX アドレスの表と同じです。写っている人の顔はぼかしています。写真の丸や線は、撮ったときの書き込みです。
+
+| アドレス | 灯体 | 写真 |
+|---|---|---|
+| 4番 | サスライト 1/5（左端） | [IMG_0095.jpg](files/venue/photos/IMG_0095.jpg)、[IMG_0102.jpg](files/venue/photos/IMG_0102.jpg) |
+| 9番 | サスライト 2/5（左寄り） | [IMG_0106.jpg](files/venue/photos/IMG_0106.jpg) |
+| 8番 | サスライト 3/5（中央） ※点かない | [IMG_0097.jpg](files/venue/photos/IMG_0097.jpg) |
+| 5番 | サスライト 4/5（右寄り） ※点かない | [IMG_0091.jpg](files/venue/photos/IMG_0091.jpg) |
+| 6番 | サスライト 5/5（右端） | [IMG_0104.jpg](files/venue/photos/IMG_0104.jpg) |
+| 27番 | ステージ全体、差し日（右ケラレ） | [IMG_0083.jpg](files/venue/photos/IMG_0083.jpg)、[IMG_0109.jpg](files/venue/photos/IMG_0109.jpg)、[IMG_0111.jpg](files/venue/photos/IMG_0111.jpg) |
+| 31番 | 客席左上方 ステージ右側 | [IMG_0117.jpg](files/venue/photos/IMG_0117.jpg) |
+| 28番 | 客席右上方 ステージ左側 | [IMG_0113.jpg](files/venue/photos/IMG_0113.jpg)、[IMG_0114.jpg](files/venue/photos/IMG_0114.jpg)、[IMG_0115.jpg](files/venue/photos/IMG_0115.jpg) |
+| 37番 | 遠方 左端手前 | [IMG_0081.jpg](files/venue/photos/IMG_0081.jpg)、[IMG_0130.jpg](files/venue/photos/IMG_0130.jpg) |
+| 38番 | 遠方 中央左寄り | [IMG_0132.jpg](files/venue/photos/IMG_0132.jpg) |
+| 35番 | 遠方中央 なぜか2方向（中央右手前と左奥） | [IMG_0089.jpg](files/venue/photos/IMG_0089.jpg)、[IMG_0099.jpg](files/venue/photos/IMG_0099.jpg)、[IMG_0128.jpg](files/venue/photos/IMG_0128.jpg) |
+| 34番 | 遠方 右手前 狭め | [IMG_0126.jpg](files/venue/photos/IMG_0126.jpg) |
+| 33番 | 遠方 右奥 狭め | [IMG_0093.jpg](files/venue/photos/IMG_0093.jpg)、[IMG_0124.jpg](files/venue/photos/IMG_0124.jpg) |
+| 33・34・35・37・38番 | 遠方の5回路をまとめて点けたところ | [IMG_0121.jpg](files/venue/photos/IMG_0121.jpg)、[IMG_0122.jpg](files/venue/photos/IMG_0122.jpg) |
+
 | ファイル | 中身 |
 |---|---|
-| [IMG_0109.jpg](files/venue/photos/IMG_0109.jpg) | 27番（ステージ全体、差し日）の回路に対応する写真 |
-| [IMG_0113.jpg](files/venue/photos/IMG_0113.jpg) | 28番（客席右上方から舞台左側）の回路に対応する写真 |
-| [IMG_0117.jpg](files/venue/photos/IMG_0117.jpg) | 31番（客席左上方から舞台右側）の回路に対応する写真 |
-| [IMG_0121.jpg](files/venue/photos/IMG_0121.jpg) | 遠方の33・34・35・37・38番をまとめて点けたところ |
 | [house-audio-console-2026-10-20.jpg](files/venue/photos/house-audio-console-2026-10-20.jpg) | 会場の音響卓 |
 | [house-audio-inputs-2026-10-20.jpg](files/venue/photos/house-audio-inputs-2026-10-20.jpg) | 会場の音響の入力端子 |
-
-ほかの回路の写真は、客席に人が写っているか、操作画面が写っているため、載せていません。
 
 ## 音響測定
 
